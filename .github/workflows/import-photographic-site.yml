@@ -1,0 +1,59 @@
+name: Import reviewed photographic site
+on:
+  push:
+    branches: [launch/photographic-rebuild-20261025]
+    paths: [.github/workflows/import-photographic-site.yml]
+permissions:
+  contents: write
+concurrency:
+  group: josh-mobile-reviewed-source-import
+  cancel-in-progress: false
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check out reviewed starting commit
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: fa1d8f680acd60c6c16960894db4436bd82e4c15
+          fetch-depth: 1
+      - name: Fetch and verify public website bundle
+        env:
+          BUNDLE_URL: https://drop.pensa.ar/f/i089HQDW8sDGf/josh-mobile-public-source.tar.gz
+          BUNDLE_SHA256: 04f958d8d18b0e49e6b953898d21f8794f3a47471a6079dc0abed8799860ef56
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --max-time 60 "$BUNDLE_URL" -o "$RUNNER_TEMP/josh-mobile-site.tar.gz"
+          echo "$BUNDLE_SHA256  $RUNNER_TEMP/josh-mobile-site.tar.gz" | sha256sum --check --status
+          python3 - <<'PY'
+          import os, tarfile, pathlib
+          archive = pathlib.Path(os.environ['RUNNER_TEMP']) / 'josh-mobile-site.tar.gz'
+          with tarfile.open(archive, 'r:gz') as bundle:
+              members = bundle.getmembers()
+              for member in members:
+                  path = pathlib.PurePosixPath(member.name)
+                  if path.is_absolute() or '..' in path.parts or not member.isfile():
+                      raise SystemExit('Unsafe archive member')
+                  if path.parts[0] in ('.git', '.github') or path.name.startswith('.env'):
+                      raise SystemExit('Disallowed archive member')
+              bundle.extractall('.', members=members, filter='data')
+          PY
+      - name: Run validation before committing
+        run: |
+          set -euo pipefail
+          npm test
+          npm run build
+          node --check public/app.js
+          node --check public/owner/owner.js
+          node -e "new Function(require('fs').readFileSync('integrations/google/Code.gs','utf8')); console.log('Google script syntax valid')"
+      - name: Commit complete source and images to main
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add --all
+          git diff --cached --quiet && { echo 'No source changes'; exit 0; }
+          git commit -m 'Launch photographic Josh Mobile site with tested service-request flow'
+          git push origin HEAD:main
+          git rev-parse HEAD
