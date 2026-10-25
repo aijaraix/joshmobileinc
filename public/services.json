@@ -1,0 +1,86 @@
+[
+  {
+    "id": "brakes",
+    "name": "Brake pads & rotors",
+    "photo": "brake-job",
+    "position": "50% 56%",
+    "alt": "Josh holding a replacement brake rotor beside a car in a driveway",
+    "short": "Stop with confidence.",
+    "description": "Brake pad and rotor replacement, with a look at visible wear. Tell Josh about squealing, grinding, or vibration when braking.",
+    "details": [
+      "Brake pad replacement",
+      "Brake rotor replacement",
+      "Discuss brake noise and wear"
+    ]
+  },
+  {
+    "id": "suspension",
+    "name": "Suspension",
+    "photo": "suspension-work",
+    "position": "50% 50%",
+    "alt": "Josh working inside the front wheel well of a red vehicle",
+    "short": "Get back to a smoother ride.",
+    "description": "Help with worn suspension components and ride concerns. Share details about clunks, uneven tire wear, or changes in handling.",
+    "details": [
+      "Suspension component service",
+      "Ride and handling concerns",
+      "Vehicle-specific scope confirmed first"
+    ]
+  },
+  {
+    "id": "ignition",
+    "name": "Spark plugs & ignition coils",
+    "photo": "engine-work",
+    "position": "48% 36%",
+    "alt": "Josh beside an open engine bay in a driveway",
+    "short": "Give your engine a fresh start.",
+    "description": "Spark plug and ignition coil replacement for scheduled maintenance or diagnosed ignition issues. Tell Josh about rough running or a misfire.",
+    "details": [
+      "Spark plug replacement",
+      "Ignition coil replacement",
+      "Share warning lights and symptoms"
+    ]
+  },
+  {
+    "id": "engine-filter",
+    "name": "Engine air filters",
+    "photo": "engine-work",
+    "position": "0% 85%",
+    "alt": "Engine bay while Josh works on a vehicle",
+    "short": "Fresh air for the miles ahead.",
+    "description": "Engine air filter inspection and replacement as part of your car\u2019s routine maintenance. Parts and fitment are confirmed for your vehicle.",
+    "details": [
+      "Check engine air filter condition",
+      "Replace the correct filter",
+      "Add to another service visit"
+    ]
+  },
+  {
+    "id": "cabin-filter",
+    "name": "Cabin air filters",
+    "photo": "brake-job",
+    "position": "60% 15%",
+    "alt": "A vehicle receiving mobile maintenance in a residential driveway",
+    "short": "A little fresher inside.",
+    "description": "Cabin air filter replacement to help keep dust and debris out of the ventilation system. Ask about adding it to your next appointment.",
+    "details": [
+      "Cabin air filter replacement",
+      "Vehicle-specific filter selection",
+      "Convenient maintenance add-on"
+    ]
+  },
+  {
+    "id": "inspection",
+    "name": "Vehicle inspections",
+    "photo": "undercarriage-work",
+    "position": "45% 36%",
+    "alt": "Josh inspecting and working beneath a vehicle",
+    "short": "Know what needs attention.",
+    "description": "Discuss a general visual vehicle check and your maintenance concerns. Josh will confirm what can be inspected at the appointment.",
+    "details": [
+      "General visual maintenance checks",
+      "Discuss concerns before service",
+      "Not a state inspection or certification"
+    ]
+  }
+]

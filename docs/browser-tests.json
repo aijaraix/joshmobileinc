@@ -1,0 +1,9 @@
+{
+  "results": [
+    "desktop: all images load, six services visible, no horizontal overflow",
+    "desktop: service selection, valid form, image preview/removal, review, correct recipients, edit preservation and no JS errors passed",
+    "mobile: all images load, six services visible, no horizontal overflow",
+    "mobile: service selection, valid form, image preview/removal, review, correct recipients, edit preservation and no JS errors passed"
+  ],
+  "note": "Synthetic browser tests. No messages sent to Josh. Logged-out local browser; live-domain tests follow deployment."
+}

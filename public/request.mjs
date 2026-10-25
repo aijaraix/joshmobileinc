@@ -1,0 +1,40 @@
+export const SERVICES = Object.freeze({brakes:'Brake pads & rotors',suspension:'Suspension',ignition:'Spark plugs & ignition coils','engine-filter':'Engine air filters','cabin-filter':'Cabin air filters',inspection:'Vehicle inspections',other:'Not sure / something else'});
+export const LIMITS = Object.freeze({count:6,perFile:15*1024*1024,total:30*1024*1024});
+export function easternToday(date = new Date()) {
+  const parts = new Intl.DateTimeFormat('en-US',{timeZone:'America/New_York',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(date);
+  const p = Object.fromEntries(parts.map(x=>[x.type,x.value])); return `${p.year}-${p.month}-${p.day}`;
+}
+export function validateRequest(d,today=easternToday()) {
+  if(!Object.hasOwn(SERVICES,d.service)) return 'Please select a service.';
+  const year=Number(d.year); const thisYear=Number(today.slice(0,4));
+  if(!Number.isInteger(year)||year<1900||year>thisYear+2) return 'Please enter a valid vehicle year.';
+  for(const [key,max,label] of [['make',60,'make'],['model',80,'model'],['name',90,'name'],['city',100,'city or ZIP code']]) if(!String(d[key]||'').trim()||String(d[key]).length>max) return `Please enter your ${label}.`;
+  if(String(d.description||'').trim().length<8||String(d.description).length>1800) return 'Please describe the work in 8–1,800 characters.';
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(d.date||'')) return 'Please choose a preferred date.';
+  const date=new Date(`${d.date}T12:00:00Z`); if(Number.isNaN(date.getTime())||date.toISOString().slice(0,10)!==d.date||d.date<today) return 'Please choose today or a future date.';
+  if(!['Morning','Afternoon','Flexible'].includes(d.time)) return 'Please choose a preferred time window.';
+  if(!['Come to my location','Ask about bringing my car'].includes(d.locationType)) return 'Please choose a service location option.';
+  const phone=String(d.phone||'').replace(/\D/g,''); if(phone.length<10||phone.length>15) return 'Please enter a phone number with at least 10 digits.';
+  if(d.email&&(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(d.email)||d.email.length>160)) return 'Please enter a valid email address.';
+  if(!d.consent) return 'Please agree to being contacted about your request.';
+  return '';
+}
+export function fileError(existing,added) {
+  const all=[...existing,...added];
+  if(all.length>LIMITS.count)return 'Please select no more than 6 photos or videos.';
+  let total=0;
+  for(const f of all) {
+    if(!/^image\/(jpeg|png|webp|heic|heif)$|^video\/(mp4|quicktime|webm)$/.test(f.type||''))return 'Choose JPG, PNG, WebP, HEIC photos or MP4, MOV, WebM videos.';
+    if(f.size===0)return 'One of the selected files is empty. Please choose another file.';
+    if(f.size>LIMITS.perFile)return 'Each file must be 15 MB or smaller. Please shorten or compress the video.';
+    total+=f.size;
+  }
+  if(total>LIMITS.total)return 'Please keep the combined file size below 30 MB.';
+  return '';
+}
+export function requestText(d,files=[]) {
+  const line=(s)=>String(s||'').replace(/[\r\n]+/g,' ').trim();
+  const formatted=new Intl.DateTimeFormat('en-US',{weekday:'short',month:'short',day:'numeric',year:'numeric',timeZone:'UTC'}).format(new Date(d.date+'T12:00:00Z'));
+  return `Hi Josh! I’d like to request service.\n\nName: ${line(d.name)}\nPhone: ${line(d.phone)}${d.email?'\nEmail: '+line(d.email):''}\nVehicle: ${line(d.year)} ${line(d.make)} ${line(d.model)}\nService: ${SERVICES[d.service]}\nCity / ZIP: ${line(d.city)}\nLocation: ${line(d.locationType)}\nPreferred date: ${formatted}\nPreferred time: ${line(d.time)} (Eastern Time)\n\nWhat I need:\n${String(d.description).trim()}\n\n${files.length?`I have ${files.length} photo/video file(s) to share with this request.\n\n`:''}Please confirm availability and an estimate before booking.\nSent from joshmobileinc.com`;
+}
+export function deliveryLinks(text) { const body=encodeURIComponent(text);return {whatsapp:`https://wa.me/16467967322?text=${body}`,sms:`sms:+16467967322?body=${body}`,email:`mailto:joshmobileinc@gmail.com?subject=${encodeURIComponent('Josh Mobile — service request')}&body=${body}`}; }
