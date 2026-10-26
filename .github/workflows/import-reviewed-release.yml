@@ -1,0 +1,48 @@
+name: Import reviewed appointment release
+on:
+  push:
+    branches: [release/booking-blue-white-20261025]
+    paths: [.github/workflows/import-reviewed-release.yml]
+permissions:
+  contents: write
+concurrency:
+  group: import-reviewed-appointment-release
+  cancel-in-progress: false
+jobs:
+  import:
+    if: github.repository == 'aijaraix/joshmobileinc'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: release/booking-blue-white-20261025
+      - name: Fetch reviewed source
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --location --max-time 90 'https://sb-8u55a3xh8atk.vercel.run/appointment-release-v2.tar.gz' -o /tmp/release.tar.gz
+          echo '6d8d3492dc27c0f6519cee843a9cde1c18f4e7b65753bf291ffb04974b309757  /tmp/release.tar.gz' | sha256sum -c -
+          python3 - <<'PY'
+          import tarfile,pathlib
+          allowed={'api','lib','public','scripts','tests','docs','integrations','README.md','package.json','package-lock.json','vercel.json','.gitignore'}
+          with tarfile.open('/tmp/release.tar.gz') as t:
+              members=t.getmembers()
+              assert len(members)==67 and sum(m.size for m in members)<15000000
+              for m in members:
+                  p=pathlib.PurePosixPath(m.name)
+                  assert m.isfile() and not p.is_absolute() and '..' not in p.parts and p.parts[0] in allowed
+                  assert not any(s in p.parts for s in ['.git','.env','node_modules','.github'])
+              t.extractall('.',members=members,filter='data')
+          PY
+      - name: Validate and commit
+        run: |
+          set -euo pipefail
+          npm ci --no-audit --no-fund
+          npm audit --audit-level=low
+          npm test
+          npm run build
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add api lib public scripts tests docs integrations README.md package.json package-lock.json vercel.json .gitignore
+          git commit -m 'Fix conditional private JSON writes and pin audited dependency patches'
+          git push origin HEAD:refs/heads/release/booking-blue-white-20261025
