@@ -20,6 +20,11 @@ r=await call(booking,'',{requestId:id,details:{...details,vin:''}});check('Publi
 const image=Buffer.from('ffd8ffe000104a46494600010201004800480000ffd9','hex');r=await call(booking,'',{requestId:id,details,attachments:[{type:'image/jpeg',size:image.length,name:'synthetic.jpg'}]});check('Public request persisted',()=>assert.equal(r.status,201));const proof=r.data.uploadToken;
 r=await call(booking,'',{requestId:id,details});check('Retry does not duplicate a request',()=>assert.equal(r.status,200));
 r=await call(admin,'jobs',null,managerCookie,'GET');check('Manager sees saved request',()=>assert(r.data.jobs.some(x=>x.id===id)));check('Upload permission never exposed in job list',()=>assert(!JSON.stringify(r.data).includes(proof)&&!JSON.stringify(r.data).includes('uploadHash')));
+r=await call(admin,'availability',null,ownerCookie,'GET');check('Working hours are private and initially disabled',()=>assert.equal(r.data.availability.enabled,false));
+const closedSchedule={enabled:true,days:[[],[],[],[],[],[],[]],blocked:[],slotMinutes:60};
+r=await call(admin,'availability',closedSchedule,ownerCookie);check('Staff can save closed working hours',()=>assert.equal(r.status,200));
+r=await call(booking,'',{requestId:randomUUID(),details});check('Public request outside configured hours rejected',()=>assert.equal(r.status,409));
+r=await call(admin,'availability',{...closedSchedule,enabled:false},ownerCookie);check('Staff can restore flexible customer requests',()=>assert.equal(r.status,200));
 r=await call(media,'',{id,token:'wrong',index:0});check('Unauthorized media completion blocked',()=>assert.equal(r.status,403));
 await putMedia(mediaPath(id,0,'image/jpeg'),image,'image/jpeg');r=await call(media,'',{id,token:proof,index:0});check('Private uploaded media attached to the correct job',()=>assert.equal(r.status,200));
 let j=(await jobById(id)).value;check('Photo reference saved',()=>assert.equal(j.media.length,1));const appointmentAt=new Date(Date.now()+4*86400000).toISOString(),update={id,version:j.version,status:'confirmed',appointmentAt,durationMinutes:90,vin:j.vin,address:j.address,city:j.city,privateNotes:'Synthetic private note',partsTools:'Pads; torque wrench'};
