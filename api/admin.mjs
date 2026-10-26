@@ -1,6 +1,7 @@
 import {randomUUID,randomBytes} from 'node:crypto';
 import {ADMINS,SECRET,text,digest,same,validVin,passwordHash,verifyPassword,sign,unsign,cookie,cookieFrom,guard,body,assert,fail} from '../lib/auth.mjs';
 import {available,readJson,writeJson,remove,account,accountPath,rate,clientIp,jobById,jobPath,allJobs,getMedia,withScheduleLock} from '../lib/private-store.mjs';
+import {settings,validateSettings,SETTINGS_PATH,enforceConfirmedSlot} from '../lib/availability.mjs';
 const ok=(res,data={},status=200)=>res.status(status).json({ok:true,...data});
 const now=()=>new Date().toISOString();
 async function startSession(email,hash,res){const sid=randomBytes(32).toString('hex'),exp=Date.now()+43200000;await writeJson(`sessions/${digest(sid)}.json`,{email,exp,version:digest(hash)});res.setHeader('Set-Cookie',cookie(sign({email,sid,exp})));}
@@ -28,6 +29,7 @@ export default async function handler(req,res){try{
  const user=await session(req);assert(user,'Sign in to view this private workspace.',401);
  if(req.method==='GET'&&action==='session')return ok(res,{email:user.email});
  if(req.method==='GET'&&action==='jobs')return ok(res,{jobs:(await allJobs()).map(publicJob)});
+ if(req.method==='GET'&&action==='availability')return ok(res,{availability:await settings()});
  if(req.method==='GET'&&['file','calendar'].includes(action)){
   const r=await jobById(req.query?.id);assert(r,'Not found.',404);
   if(action==='calendar'){res.setHeader('Content-Type','text/calendar; charset=utf-8');res.setHeader('Content-Disposition','attachment; filename="josh-mobile-appointment.ics"');return res.status(200).end(calendar(r.value));}
@@ -39,6 +41,7 @@ export default async function handler(req,res){try{
  if(action==='change-password'){
   await rate('password:'+user.email,6);const a=await account(user.email);assert(await verifyPassword(b.oldPassword,a.value.hash),'Current password was not accepted.',400);assert(typeof b.newPassword==='string'&&b.newPassword.length>=12&&b.newPassword.length<=128,'Choose a password of 12–128 characters.');assert(b.newPassword!==b.oldPassword,'Use a different password.');const hash=await passwordHash(b.newPassword);await writeJson(accountPath(user.email),{...a.value,hash,changedAt:now()},a.etag);res.setHeader('Set-Cookie',cookie('',0));return ok(res,{signOut:true});
  }
+ if(action==='availability'){const next=validateSettings(b);const saved=await withScheduleLock(async()=>{const old=await readJson(SETTINGS_PATH);await writeJson(SETTINGS_PATH,next,old?.etag);return next;});return ok(res,{availability:saved});}
  if(action==='create'){const job=normalizeManual(b,user.email);await writeJson(jobPath(job.id),job);return ok(res,{id:job.id},201);}
  assert(['update','message'].includes(action),'Unknown action.',400);
  return await withScheduleLock(async()=>{
@@ -55,6 +58,7 @@ export default async function handler(req,res){try{
     assert(validVin(j.vin),'A valid VIN is required before confirming this appointment.');
     const start=Date.parse(at);const changed=old.status!=='confirmed'||old.appointmentAt!==at||old.durationMinutes!==duration;
     assert(Number.isFinite(start),'Choose an appointment date and time.');if(changed)assert(start>Date.now()&&start<Date.now()+365*86400000,'Choose a future appointment within one year.');
+    if(changed)await enforceConfirmedSlot(new Date(start).toISOString(),duration,j.id);
     const end=start+duration*60000;const others=await allJobs();assert(!others.some(x=>x.id!==j.id&&x.status==='confirmed'&&Date.parse(x.appointmentAt)<end&&Date.parse(x.appointmentAt)+(x.durationMinutes||60)*60000>start),'This appointment overlaps another confirmed job.',409);j.appointmentAt=new Date(start).toISOString();
    }
    if(old.status!==j.status||old.appointmentAt!==j.appointmentAt)j.timeline.push(activity(user.email,'status',`Status: ${j.status}${j.appointmentAt?' · '+j.appointmentAt:''}`));

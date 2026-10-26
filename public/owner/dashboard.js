@@ -9,7 +9,7 @@ function easternISO(s){if(!s)return '';const candidates=[new Date(s+'-04:00'),ne
 let jobs=[],selected=null,filter='upcoming',activation=null;
 const params=new URLSearchParams(location.hash.slice(1));if(params.has('activate')){activation={token:params.get('activate'),email:params.get('email')||''};history.replaceState(null,'',location.pathname);$('login-email').value=activation.email;$('login-email').readOnly=true;$('login-password').autocomplete='new-password';$('confirm-label').hidden=false;$('confirm-password').required=true;msg('login-title','Set up your account.');msg('login-submit','Create password & sign in');msg('login-subtitle','Choose a private password of at least 12 characters. Your activation link can be used once.');}
 function showLogin(){activation=null;$('login-email').readOnly=false;$('confirm-label').hidden=true;$('confirm-password').required=false;$('login-password').autocomplete='current-password';msg('login-title','Welcome back.');msg('login-submit','Sign in');$('login-screen').hidden=false;$('dashboard-screen').hidden=true;$('signout').hidden=true;jobs=[];selected=null;$('jobs-list').replaceChildren();$('detail-media').replaceChildren();}
-function showDashboard(email){activation=null;$('login-screen').hidden=true;$('dashboard-screen').hidden=false;$('signout').hidden=false;msg('admin-email',email);msg('today-date',new Date().toLocaleDateString('en-US',{timeZone:'America/New_York',weekday:'long',month:'long',day:'numeric'})+' · Eastern time');load();}
+function showDashboard(email){loadAvailability();activation=null;$('login-screen').hidden=true;$('dashboard-screen').hidden=false;$('signout').hidden=false;msg('admin-email',email);msg('today-date',new Date().toLocaleDateString('en-US',{timeZone:'America/New_York',weekday:'long',month:'long',day:'numeric'})+' · Eastern time');load();}
 async function load(){try{jobs=(await api('jobs')).jobs||[];render();if(selected){const next=jobs.find(j=>j.id===selected.id);if(next)choose(next.id);}}catch(e){msg('list-count',e.message);}}
 function render(){const q=$('search-jobs').value.toLowerCase();msg('count-new',jobs.filter(j=>j.status==='requested').length);msg('count-upcoming',jobs.filter(j=>j.status==='confirmed'&&Date.parse(j.appointmentAt)>Date.now()).length);msg('count-customers',new Set(jobs.map(j=>j.phone.replace(/\D/g,''))).size);msg('count-done',jobs.filter(j=>j.status==='completed').length);const items=jobs.filter(j=>(filter==='all'||filter==='requested'&&j.status==='requested'||filter==='upcoming'&&(j.status==='requested'||j.status==='confirmed'&&Date.parse(j.appointmentAt)>Date.now()-86400000))&&[j.name,j.phone,j.vin,j.make,j.model,j.service,j.city].join(' ').toLowerCase().includes(q)).sort((a,b)=>(a.appointmentAt||a.createdAt).localeCompare(b.appointmentAt||b.createdAt));msg('list-count',items.length+' matching jobs');$('jobs-list').innerHTML=items.length?items.map(j=>`<button type="button" class="job-item ${selected?.id===j.id?'selected':''}" data-id="${esc(j.id)}"><span class="status ${esc(j.status)}">${esc(j.status==='requested'?'New request':j.status)}</span><strong>${esc(j.name)}</strong><span>${esc([j.year,j.make,j.model].filter(Boolean).join(' '))}</span><span>${esc(services[j.service]||j.service)}</span><small>${esc(j.appointmentAt?date(j.appointmentAt):'Preferred: '+(j.date||'Not set')+' · '+(j.time||'Flexible'))}</small><small>${esc(j.city)}</small></button>`).join(''):'<div class="empty-detail"><h3>No jobs here yet.</h3><p>Website requests will appear here automatically. Add a job for customers who text or call.</p></div>';$('jobs-list').querySelectorAll('[data-id]').forEach(b=>b.onclick=()=>{choose(b.dataset.id);if(innerWidth<1030)$('detail-panel').scrollIntoView({behavior:'smooth',block:'start'});});}
 function choose(id){selected=jobs.find(j=>j.id===id);if(!selected)return;const j=selected;$('empty-detail').hidden=true;$('job-detail').hidden=false;msg('job-title',j.name);msg('job-summary',services[j.service]||j.service);msg('job-status',j.status==='requested'?'New request':j.status);$('job-status').className='status '+j.status;for(const [key,value]of Object.entries({'detail-name':j.name,'detail-phone':j.phone,'detail-email':j.email||'Not provided','detail-address':[j.address,j.city].join(', '),'detail-car':[j.year,j.make,j.model].join(' '),'detail-vin':j.vin||'Needed before confirmation','detail-description':j.description,'detail-preferred':`Requested: ${j.date||'Flexible'} · ${j.time||'Flexible'} · ${j.locationType||'Mobile service'}`}))msg(key,value);$('job-status-input').value=j.status;$('job-confirmed-at').value=easternInput(j.appointmentAt);$('job-duration').value=j.durationMinutes||60;$('job-vin-input').value=j.vin||'';$('job-address-input').value=j.address||'';$('job-city-input').value=j.city||'';$('job-notes').value=j.privateNotes||'';$('job-parts').value=j.partsTools||'';const phone=j.phone.replace(/[^+\d]/g,'');$('call-customer').href='tel:'+phone;$('text-customer').href='sms:'+phone;$('map-customer').href='https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(j.address+', '+j.city);$('calendar-job').hidden=!j.appointmentAt;$('calendar-job').href='/api/admin?action=calendar&id='+encodeURIComponent(j.id);$('detail-media').innerHTML=(j.media||[]).map(m=>{const url='/api/admin?action=file&id='+encodeURIComponent(j.id)+'&index='+m.index;return m.type.startsWith('image/')?`<a href="${url}" target="_blank" rel="noopener"><img src="${url}" alt="Customer vehicle attachment ${m.index+1}" loading="lazy"></a>`:`<a href="${url}" target="_blank" rel="noopener">Open video ${m.index+1} ↗</a>`;}).join('')||'<p class="subtle">No uploaded attachments.</p>';$('timeline').innerHTML=[...(j.timeline||[])].reverse().map(t=>`<article class="timeline-entry"><small>${esc(date(t.at))} · ${esc(t.kind)} · ${esc(t.by)}</small><p>${esc(t.text)}</p></article>`).join('');msg('save-message','');msg('communication-message','');render();}
@@ -20,3 +20,34 @@ $('communication-form').onsubmit=async e=>{e.preventDefault();if(!selected)retur
 $('new-job-btn').onclick=()=>$('add-dialog').showModal();$('close-dialog').onclick=()=>$('add-dialog').close();$('add-job-form').onsubmit=async e=>{e.preventDefault();try{const r=await api('create','POST',Object.fromEntries(new FormData(e.target)));e.target.reset();$('add-dialog').close();filter='all';$('job-filters').querySelectorAll('button').forEach(x=>x.classList.toggle('active',x.dataset.filter===filter));await load();choose(r.id);}catch(err){msg('add-message',err.message);}};
 $('change-password-form').onsubmit=async e=>{e.preventDefault();try{await api('change-password','POST',{oldPassword:$('old-password').value,newPassword:$('new-password').value});e.target.reset();showLogin();msg('login-message','Password changed. Please sign in again.');}catch(err){msg('password-message',err.message);}};
 if(!activation)api('session').then(r=>showDashboard(r.email)).catch(()=>{});
+
+const DAYS=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+async function loadAvailability(){
+ try{
+  const config=(await api('availability')).availability;
+  const host=$('availability-days');host.replaceChildren();
+  DAYS.forEach((name,i)=>{
+   const row=document.createElement('div');row.className='availability-day';
+   const current=config.days[i]||[];
+   const toggle=document.createElement('input');toggle.type='checkbox';toggle.checked=current.length===2;
+   const label=document.createElement('label');label.append(toggle,document.createTextNode(' '+name));
+   const from=document.createElement('input');from.type='time';from.value=current[0]||'09:00';from.setAttribute('aria-label',name+' from');
+   const to=document.createElement('input');to.type='time';to.value=current[1]||'17:00';to.setAttribute('aria-label',name+' to');
+   row.append(label,from,to);host.append(row);
+  });
+  $('availability-enabled').checked=config.enabled;
+  $('availability-blocked').value=config.blocked.join('\n');
+  msg('availability-message','');
+ }catch(err){msg('availability-message',err.message);}
+}
+$('availability-form').onsubmit=async event=>{
+ event.preventDefault();
+ const days=[...$('availability-days').children].map(row=>{
+  const items=row.querySelectorAll('input');return items[0].checked?[items[1].value,items[2].value]:[];
+ });
+ const blocked=$('availability-blocked').value.split(/[\n,]+/).map(v=>v.trim()).filter(Boolean);
+ const button=event.submitter;if(button)button.disabled=true;
+ try{await api('availability','POST',{enabled:$('availability-enabled').checked,days,blocked,slotMinutes:60});msg('availability-message','Working hours saved. Customer time slots now reflect your schedule.');}
+ catch(err){msg('availability-message',err.message);}
+ finally{if(button)button.disabled=false;}
+};
