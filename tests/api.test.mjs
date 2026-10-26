@@ -1,6 +1,9 @@
-import test from 'node:test';import assert from 'node:assert/strict';import workspace from '../api/workspace.mjs';import booking from '../api/booking.mjs';
-function response(){return {headers:{},code:null,data:null,setHeader(k,v){this.headers[k]=v},status(n){this.code=n;return this},json(d){this.data=d;return this}};}
-test('workspace disabled when unconfigured',()=>{const r=response();workspace({},r);assert.equal(r.code,200);assert.equal(r.data.connected,false);assert.equal(r.data.ownerUrl,null);});
-test('booking GET never writes',async()=>{const r=response();await booking({method:'GET',headers:{}},r);assert.equal(r.code,405)});
-test('booking rejects foreign origin',async()=>{const r=response();await booking({method:'POST',headers:{origin:'https://example.com'}},r);assert.equal(r.code,403)});
-test('booking fails closed until activation',async()=>{const r=response();await booking({method:'POST',headers:{origin:'https://joshmobileinc.com','content-type':'application/json'}},r);assert.equal(r.code,503);assert(!r.data.ok)});
+import test from 'node:test';import assert from 'node:assert/strict';
+import {memoryStore} from './memory-store.mjs';import {useTestStore,rate} from '../lib/private-store.mjs';import {scenario} from './scenario.mjs';import {validVin,passwordHash,verifyPassword,sign,unsign,same} from '../lib/auth.mjs';import {magicOK} from '../lib/media.mjs';
+process.env.NODE_ENV='test';useTestStore(memoryStore());
+test('Complete private booking and account lifecycle',async()=>{const checks=await scenario();console.log('Verified workflow checks:',checks.length);assert(checks.length>=25);});
+test('VIN validity is enforced',()=>{assert(validVin('1HGCM82633A004352'));for(const bad of ['','123','IHGCM82633A004352','OHGCM82633A004352','QHGCM82633A004352'])assert(!validVin(bad));});
+test('Strong password storage and incorrect passwords',async()=>{const p='a-long-unique-test-password',h=await passwordHash(p);assert(h.startsWith('scrypt17$'));assert(!h.includes(p));assert(await verifyPassword(p,h));assert(!await verifyPassword('not-the-right-password',h));assert(!await verifyPassword('short',h));});
+test('Tampered and expired sessions rejected',()=>{process.env.JM_SESSION_SECRET='test-only-'.repeat(6);const token=sign({exp:Date.now()+10000});assert(unsign(token));assert(!unsign(token+'x'));assert(!unsign(sign({exp:Date.now()-1})));assert.equal(same('é','e'),false);});
+test('Durable request limit blocks overflow',async()=>{await rate('test-limit',2);await rate('test-limit',2);await assert.rejects(()=>rate('test-limit',2),e=>e.status===429);});
+test('Media magic validates actual image/container types',()=>{assert(magicOK('image/jpeg',Buffer.from('ffd8ff','hex')));assert(!magicOK('image/jpeg',Buffer.from('<html>')));assert(!magicOK('image/webp',Buffer.from('RIFF----HTML')));assert(magicOK('video/mp4',Buffer.from('000000186674797069736f6d','hex')));});

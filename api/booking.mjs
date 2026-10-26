@@ -1,19 +1,14 @@
+import {randomBytes} from 'node:crypto';
 import {validateRequest} from '../lib/request.mjs';
-export default async function handler(req,res){
- res.setHeader('Cache-Control','no-store');res.setHeader('X-Robots-Tag','noindex');
- if(req.method!=='POST'){res.setHeader('Allow','POST');return res.status(405).json({error:'Method not allowed'});}
- const origin=req.headers.origin; if(origin!=='https://joshmobileinc.com'&&origin!=='https://www.joshmobileinc.com')return res.status(403).json({error:'Unrecognized request origin'});
- const endpoint=process.env.JM_GOOGLE_WEBAPP_URL||'';const secret=process.env.JM_GOOGLE_API_SECRET;
- if(process.env.JM_ONLINE_INTAKE_ENABLED!=='true'||!secret||!/^https:\/\/script\.google\.com\/macros\/s\/[A-Za-z0-9_-]+\/exec$/.test(endpoint))return res.status(503).json({error:'Online storage is not active. Please send your request by WhatsApp, text, or email.'});
- if(!String(req.headers['content-type']||'').startsWith('application/json'))return res.status(415).json({error:'JSON required'});
- try{
-  const body=typeof req.body==='string'?JSON.parse(req.body):req.body;
-  if(!body||JSON.stringify(body).length>3500000)return res.status(413).json({error:'Request is too large. Send media through WhatsApp instead.'});
-  const error=validateRequest(body.details||{});if(error)return res.status(400).json({error});
-  if(!/^[0-9a-f-]{36}$/i.test(body.requestId||''))return res.status(400).json({error:'Missing request identifier'});
-  const response=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'createRequest',secret,details:body.details,requestId:body.requestId,files:body.files||[]}),signal:AbortSignal.timeout(25000),redirect:'follow'});
-  if(!response.ok)throw new Error('Storage unavailable');const result=await response.json();
-  if(!result.ok)return res.status(result.code==='limit'?429:400).json({error:result.error||'Request was not saved.'});
-  return res.status(201).json({ok:true,id:result.id,status:'requested',confirmed:false,notificationSent:result.notificationSent===true});
- }catch{return res.status(502).json({error:'We could not confirm your submission. Keep your details and send them directly to Josh.'});}
-}
+import {guard,body,assert,fail,SECRET,digest,text} from '../lib/auth.mjs';
+import {available,rate,clientIp,uuid,jobById,jobPath,writeJson,mediaTypes} from '../lib/private-store.mjs';
+export default async function handler(req,res){try{
+ guard(req,res);assert(req.method==='POST','Method not allowed.',405);assert(available()&&SECRET().length>=40&&process.env.JM_BOOKING_ENABLED==='true','Online requests are unavailable. Please text Josh.',503);
+ const b=body(req);assert(!b.website,'Unable to process the request.');const d=b.details||{};assert(!validateRequest(d),validateRequest(d)||'Check the form.');assert(uuid(b.requestId),'Invalid request ID.');
+ const attachments=Array.isArray(b.attachments)?b.attachments:[];assert(attachments.length<=6,'Choose no more than six files.');let total=0;attachments.forEach((f,i)=>{assert(mediaTypes[f.type]&&Number.isInteger(f.size)&&f.size>0&&f.size<=15*1024*1024,'Use JPG, PNG, WebP, MP4, MOV or WebM files up to 15 MB each.');total+=f.size;});assert(total<=30*1024*1024,'Attachments must total 30 MB or less.');
+ const existing=await jobById(b.requestId);if(existing)return res.status(200).json({ok:true,id:b.requestId,duplicate:true,confirmed:false});
+ await rate('intake-ip:'+clientIp(req),10,3600000);await rate('intake-phone:'+String(d.phone).replace(/\D/g,''),5,86400000);await rate('intake-global',150,86400000);
+ const token=randomBytes(32).toString('base64url'),stamp=new Date().toISOString();
+ const j={id:b.requestId,createdAt:stamp,updatedAt:stamp,version:1,source:'website',status:'requested',name:text(d.name,90),phone:text(d.phone,30),email:text(d.email,160),year:String(d.year),make:text(d.make,60),model:text(d.model,80),vin:text(d.vin,17).toUpperCase(),service:text(d.service,100),description:text(d.description,1800),address:text(d.address,240),city:text(d.city,100),locationType:d.locationType,date:d.date,time:d.time,appointmentAt:'',durationMinutes:60,privateNotes:'',partsTools:'',media:[],timeline:[{id:b.requestId,at:stamp,by:'Customer',kind:'created',text:'Website service request received. Awaiting staff confirmation.'}],attachments:attachments.map((f,index)=>({index,type:f.type,size:f.size,name:text(f.name,100)})),uploadHash:digest(token),uploadUntil:Date.now()+30*60*1000};
+ await writeJson(jobPath(j.id),j);return res.status(201).json({ok:true,id:j.id,confirmed:false,uploadToken:token,notificationSent:false});
+}catch(e){return fail(res,e);}}

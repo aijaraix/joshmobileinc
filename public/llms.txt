@@ -1,6 +1,6 @@
 # Josh Mobile Inc.
 
-Appointment-only mobile mechanic serving Northern Broward County, Florida.
+Appointment-only mobile mechanic serving North Broward County, Florida.
 
 ## Contact
 - Website: https://joshmobileinc.com/

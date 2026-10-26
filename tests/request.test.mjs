@@ -1,5 +1,5 @@
 import test from 'node:test';import assert from 'node:assert/strict';import {SERVICES,LIMITS,easternToday,validateRequest,fileError,requestText,deliveryLinks} from '../lib/request.mjs';
-const valid={service:'brakes',year:'2018',make:'Honda',model:'Accord',description:'Brake noise while slowing down.',date:'2026-10-27',time:'Morning',city:'Northern Broward',locationType:'Come to my location',name:'Test Customer',phone:'202-555-0142',email:'test@example.com',consent:true};
+const valid={vin:'1HGCM82633A004352',address:'123 Example Street',service:'brakes',year:'2018',make:'Honda',model:'Accord',description:'Brake noise while slowing down.',date:'2026-10-27',time:'Morning',city:'Northern Broward',locationType:'Come to my location',name:'Test Customer',phone:'202-555-0142',email:'test@example.com',consent:true};
 const v=(d)=>validateRequest({...valid,...d},'2026-10-25');
 test('six specific services plus uncertain option',()=>assert.equal(Object.keys(SERVICES).length,7));
 test('valid request accepted',()=>assert.equal(v({}),''));
@@ -11,7 +11,7 @@ test('ET standard time date',()=>assert.equal(easternToday(new Date('2026-12-01T
 const photo={name:'car.jpg',type:'image/jpeg',size:10000};
 test('photo accepted',()=>assert.equal(fileError([],[photo]),''));
 test('video accepted',()=>assert.equal(fileError([],[{name:'clip.mp4',type:'video/mp4',size:10000}]),''));
-test('HEIC accepted for sharing',()=>assert.equal(fileError([],[{...photo,type:'image/heic'}]),''));
+test('HEIC asks for a supported upload format',()=>assert.match(fileError([],[{...photo,type:'image/heic'}]),/JPG/));
 test('six files allowed',()=>assert.equal(fileError([],Array(6).fill(photo)),''));
 test('seventh file rejected',()=>assert.notEqual(fileError(Array(6).fill(photo),[photo]),''));
 test('empty file rejected',()=>assert.notEqual(fileError([],[{...photo,size:0}]),''));

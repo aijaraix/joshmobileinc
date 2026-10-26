@@ -1,42 +1,29 @@
-# Josh Mobile Inc. — production website
+# Josh Mobile Inc. — public site and private appointment workspace
 
-Photographic public site for `joshmobileinc.com`. This is the complete rebuild, including the actual image files; there is no dependency on a ChatGPT preview or image hotlinks.
+Production: https://joshmobileinc.com · Staff: /owner · North Broward County, Florida.
 
-## Launch scope
+## Release scope
 
-**Works without Google authorization:** public pages, all six services, contact buttons, photo gallery, preferred-date/vehicle/job request builder, camera/file selection with local previews, WhatsApp/text/email handoff, native file sharing where supported, request text download, accessibility/mobile navigation, metadata/social JPEG, sitemap and robots.
+The blue-and-white photographic website includes six services, distinct service/work photos, Instagram, VIN and service-address collection, private online service requests, and direct text/WhatsApp/email options. Customers do not sign in. A request does not reserve a slot: staff confirms it.
 
-**Not active until separately authorized and tested:** persisted online intake, private administrator sign-in, Google Drive uploads, calendar synchronization and reminder emails. The `/owner/` entrance labels this honestly. `/owner/preview` contains fictional sample data, clearly labeled. The request form never calls a message prepared or an app opened “submitted” or “confirmed.”
+The single-page staff dashboard supports customer search, requests/upcoming/completed jobs, private attachments, VIN/address, scheduling with conflict checks, notes, parts/tools, manually added jobs, and a conversation timeline. SMS opens the staff member's phone app; conversation summaries are recorded manually. No automatic two-way SMS ingestion, email notifications, Google sign-in, Google Calendar sync, or email reminders are claimed. Calendar exports include local device reminder instructions.
 
-## Structure
+## Authentication and storage
 
-- `public/`: deployable site, CSS, JS, images, privacy, owner entrance/preview.
-- `lib/request.mjs`: tested validation, file limits, date handling and delivery links; identical copy in public.
-- `api/`: optional configuration and Google intake bridge, fails closed until explicitly enabled.
-- `integrations/google/`: private workspace source and activation instructions.
-- `tests/`, `scripts/`: dependency-free checks and acceptance notes.
-- `docs/`: operational handoff and test results.
+Only two approved staff addresses are allowed server-side. Each receives an individual, one-use, time-limited activation invitation and creates a 16–128-character password. Passwords use scrypt with random salts; sessions use signed Secure/HttpOnly/SameSite=Strict cookies plus revocable private server records. A password change revokes prior sessions. Recovery is operator-assisted through the managing administrator; there is no public account registration.
 
-## Local checks
+All job records, account hashes, sessions and media are stored in the existing private Vercel Blob store, not GitHub or static files. Conditional writes protect concurrent edits; a scheduling lock and overlap checks protect appointments. Private media retrieval requires staff authentication. Upload capabilities are limited to a single request, declared type/size and 30-minute lifetime; file signatures are checked before attachments appear.
 
-Node 22 or 24, no dependencies or paid services required:
+Production-only configuration: BLOB_READ_WRITE_TOKEN (managed store connection), JM_SESSION_SECRET, JM_OWNER_INVITE_HASH, JM_MANAGER_INVITE_HASH, JM_INVITE_EXPIRES, JM_BOOKING_ENABLED=true. Never commit raw invitation tokens, passwords, cookies, environment files, or customer records. The old integrations/google folder is an optional archived approach and is NOT the deployed runtime.
 
-```sh
-npm test
-npm run build
-python3 -m http.server 8080 --directory public
-```
+## Build and verification
 
-## Vercel
+Node 24; npm ci; npm test; npm run build. Dependencies are pinned in package-lock.json. Vercel uses public/ output and five API handlers. The production build runs an acceptance scenario against real private storage under an isolated smoke/<random>/ prefix, cleans up that prefix, and restores real environment values. It does not consume real staff invitations.
 
-Existing AIcreatesAI team, existing `joshmobileinc` project. Framework: Other. Output: `public`. Build: `npm run build`. No install dependencies. Custom domain already configured, so DNS changes are not required.
+Tests cover request validation, VIN, upload limits, activation/login, wrong-user and cross-site denial, secure sessions, private persistence, media validation, stale edit rejection, appointment conflicts, conversation notes, manual jobs, completion, logout and password revocation.
 
-Do not add an external rewrite to the ChatGPT preview. Do not deploy a text-only placeholder over this site. Deploy and verify the complete Git commit and local images together.
+## Operations
 
-## Facts
+Requests are limited to six attachments, 15 MB each and 30 MB total. JPG/PNG/WebP and MP4/MOV/WebM are supported; HEIC can be sent directly through messaging instead. Staff lists are capped at 2,000 jobs to avoid unbounded scans. Monitor existing Vercel usage; private storage and function usage can incur charges beyond included allowances. No new VPS or paid database was provisioned for this release.
 
-Mobile service in Northern Broward County, Florida, by appointment only. Phone +1 646 796 7322. Email joshmobileinc@gmail.com. Instagram joshmobileinc. No invented reviews, credentials, prices, business address, hours, or guaranteed availability.
-
-## Media
-
-Work photographs were supplied for this business website. Original hero and avatar are design assets from the earlier project. All deployed image files are stripped of location metadata. Do not publish private chat screenshots, DNS screenshots, customer job records, or credentials.
+Use the staff footer link to sign in. Keep the public domain public, preview deployment protection enabled, and all private API responses no-store/noindex. Do not proxy this website to a ChatGPT preview.

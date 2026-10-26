@@ -1,0 +1,6 @@
+import {randomUUID} from 'node:crypto';
+export function memoryStore(){const data=new Map();return {data,
+async get(path){const r=data.get(path);return r?{stream:new Blob([r.bytes]).stream(),blob:{etag:r.etag,pathname:path,contentType:r.type,size:r.bytes.length}}:null;},
+async put(path,content,options){const old=data.get(path);if(old&&!options.allowOverwrite)throw new Error('Blob already exists');if(options.ifMatch&&old?.etag!==options.ifMatch)throw new Error('Precondition failed');const bytes=Buffer.isBuffer(content)?content:Buffer.from(content),r={bytes,type:options.contentType,etag:randomUUID(),uploadedAt:new Date().toISOString()};data.set(path,r);return {pathname:path,etag:r.etag,url:'https://example.private.blob.vercel-storage.com/'+path};},
+async list({prefix='',limit=1000,cursor}){const all=[...data.entries()].filter(([p])=>p.startsWith(prefix)),n=Number(cursor||0);return {blobs:all.slice(n,n+limit).map(([p,r])=>({pathname:p,uploadedAt:r.uploadedAt})),hasMore:n+limit<all.length,cursor:String(n+limit)};},
+async head(path){const r=data.get(path);if(!r)throw new Error('Not found');return {pathname:path,size:r.bytes.length,contentType:r.type};},async del(path){data.delete(path);}};}

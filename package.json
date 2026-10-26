@@ -1,1 +1,1 @@
-{"name":"josh-mobile-website","version":"1.0.0","private":true,"type":"module","engines":{"node":">=22"},"scripts":{"test":"node --test tests/*.test.mjs","build":"node scripts/check.mjs"}}
+{"name":"josh-mobile-website","version":"2.0.0","private":true,"type":"module","engines":{"node":">=22"},"scripts":{"test":"node --test tests/*.test.mjs","build":"node scripts/check.mjs && node scripts/build.mjs"},"dependencies":{"@vercel/blob":"2.8.2","esbuild":"0.27.4"}}
