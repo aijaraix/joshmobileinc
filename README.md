@@ -1,42 +1,19 @@
-# Josh Mobile Inc. — production website
+# Josh Mobile Inc. — live website and private scheduling
 
-Photographic public site for `joshmobileinc.com`. This is the complete rebuild, including the actual image files; there is no dependency on a ChatGPT preview or image hotlinks.
+Production: https://joshmobileinc.com — Vercel project `joshmobileinc` on the AIcreatesAI team.
 
-## Launch scope
+Public site: six services, Josh's original photos, Instagram, phone/SMS/WhatsApp/email, VIN and service address required, preferred date and time, optional photo/video files and secure online request saving (small attachments, 2.5 MB total). The website is publicly accessible without a login.
 
-**Works without Google authorization:** public pages, all six services, contact buttons, photo gallery, preferred-date/vehicle/job request builder, camera/file selection with local previews, WhatsApp/text/email handoff, native file sharing where supported, request text download, accessibility/mobile navigation, metadata/social JPEG, sitemap and robots.
+Staff page: https://joshmobileinc.com/owner/ — private email/password sign-in for only the two approved accounts, with mandatory first-login password rotation. The dashboard is one page: new requests, upcoming appointments, customers, vehicle/VIN/address, job notes, parts/tools, saved photos/videos, manual entries, appointment confirmation, click-to-text, and a manually maintained conversation timeline.
 
-**Not active until separately authorized and tested:** persisted online intake, private administrator sign-in, Google Drive uploads, calendar synchronization and reminder emails. The `/owner/` entrance labels this honestly. `/owner/preview` contains fictional sample data, clearly labeled. The request form never calls a message prepared or an app opened “submitted” or “confirmed.”
+Operational limits:
+- Online booking is a **request**, not a confirmed slot. Only Josh can confirm date/time.
+- Text links open the customer's or Josh's messaging app. They do **not** send automatically or import the phone's SMS history. Timeline entries are manually logged.
+- Online attachment limit is 2.5 MB across six supported files. For larger media, use direct texting/sharing.
+- Automatic email reminders, live two-way SMS inbox syncing, and Google Calendar/Drive integration are not yet connected. Never claim they are active.
+- No separate paid database was provisioned; existing private Vercel Blob storage may incur metered charges beyond plan allowances.
+- Admin password hashes and session key live in Vercel encrypted environment settings, never GitHub. Temporary credentials must be communicated privately to each account holder and changed on first login.
 
-## Structure
+All customer records and media reside in a **private** Vercel Blob store, accessed by authenticated server functions only. Do not add local storage of customer records or expose a Blob token to browsers. Owner route is noindex. No public demo customer data.
 
-- `public/`: deployable site, CSS, JS, images, privacy, owner entrance/preview.
-- `lib/request.mjs`: tested validation, file limits, date handling and delivery links; identical copy in public.
-- `api/`: optional configuration and Google intake bridge, fails closed until explicitly enabled.
-- `integrations/google/`: private workspace source and activation instructions.
-- `tests/`, `scripts/`: dependency-free checks and acceptance notes.
-- `docs/`: operational handoff and test results.
-
-## Local checks
-
-Node 22 or 24, no dependencies or paid services required:
-
-```sh
-npm test
-npm run build
-python3 -m http.server 8080 --directory public
-```
-
-## Vercel
-
-Existing AIcreatesAI team, existing `joshmobileinc` project. Framework: Other. Output: `public`. Build: `npm run build`. No install dependencies. Custom domain already configured, so DNS changes are not required.
-
-Do not add an external rewrite to the ChatGPT preview. Do not deploy a text-only placeholder over this site. Deploy and verify the complete Git commit and local images together.
-
-## Facts
-
-Mobile service in Northern Broward County, Florida, by appointment only. Phone +1 646 796 7322. Email joshmobileinc@gmail.com. Instagram joshmobileinc. No invented reviews, credentials, prices, business address, hours, or guaranteed availability.
-
-## Media
-
-Work photographs were supplied for this business website. Original hero and avatar are design assets from the earlier project. All deployed image files are stripped of location metadata. Do not publish private chat screenshots, DNS screenshots, customer job records, or credentials.
+Testing: `npm test`, `npm run build`; verify in production using unauthenticated and authenticated sessions, including one synthetic test request (remove or mark test data clearly), first-login rotation, notes and date changes, and protected media.
