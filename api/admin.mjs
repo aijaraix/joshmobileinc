@@ -20,7 +20,7 @@ export default async function handler(req,res){try{
   if(action==='activate'){
    const role=email===ADMINS[0]?'OWNER':'MANAGER';const expiry=Number(process.env.JM_INVITE_EXPIRES||0);
    assert(!a&&expiry>Date.now()&&same(digest(text(b.token,160)),process.env[`JM_${role}_INVITE_HASH`]||''),'This activation link is invalid, expired, or already used. Sign in or contact your site administrator.',401);
-   assert(typeof b.password==='string'&&b.password.length>=16&&b.password.length<=128,'Choose a password of 16–128 characters.');
+   assert(typeof b.password==='string'&&b.password.length>=12&&b.password.length<=128,'Choose a password of 12–128 characters.');
    const hash=await passwordHash(b.password);await writeJson(accountPath(email),{hash,createdAt:now(),changedAt:now()});await startSession(email,hash,res);return ok(res,{email});
   }
   assert(a&&await verifyPassword(b.password,a.value.hash),'Email or password was not accepted.',401);await startSession(email,a.value.hash,res);return ok(res,{email});
@@ -37,7 +37,7 @@ export default async function handler(req,res){try{
  assert(req.method==='POST','Method not allowed.',405);const b=body(req);
  if(action==='logout'){await remove(`sessions/${digest(user.sid)}.json`);res.setHeader('Set-Cookie',cookie('',0));return ok(res);}
  if(action==='change-password'){
-  await rate('password:'+user.email,6);const a=await account(user.email);assert(await verifyPassword(b.oldPassword,a.value.hash),'Current password was not accepted.',400);assert(typeof b.newPassword==='string'&&b.newPassword.length>=16&&b.newPassword.length<=128,'Choose a password of 16–128 characters.');assert(b.newPassword!==b.oldPassword,'Use a different password.');const hash=await passwordHash(b.newPassword);await writeJson(accountPath(user.email),{...a.value,hash,changedAt:now()},a.etag);res.setHeader('Set-Cookie',cookie('',0));return ok(res,{signOut:true});
+  await rate('password:'+user.email,6);const a=await account(user.email);assert(await verifyPassword(b.oldPassword,a.value.hash),'Current password was not accepted.',400);assert(typeof b.newPassword==='string'&&b.newPassword.length>=12&&b.newPassword.length<=128,'Choose a password of 12–128 characters.');assert(b.newPassword!==b.oldPassword,'Use a different password.');const hash=await passwordHash(b.newPassword);await writeJson(accountPath(user.email),{...a.value,hash,changedAt:now()},a.etag);res.setHeader('Set-Cookie',cookie('',0));return ok(res,{signOut:true});
  }
  if(action==='create'){const job=normalizeManual(b,user.email);await writeJson(jobPath(job.id),job);return ok(res,{id:job.id},201);}
  assert(['update','message'].includes(action),'Unknown action.',400);

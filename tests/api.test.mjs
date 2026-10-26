@@ -7,3 +7,8 @@ test('Strong password storage and incorrect passwords',async()=>{const p='a-long
 test('Tampered and expired sessions rejected',()=>{process.env.JM_SESSION_SECRET='test-only-'.repeat(6);const token=sign({exp:Date.now()+10000});assert(unsign(token));assert(!unsign(token+'x'));assert(!unsign(sign({exp:Date.now()-1})));assert.equal(same('é','e'),false);});
 test('Durable request limit blocks overflow',async()=>{await rate('test-limit',2);await rate('test-limit',2);await assert.rejects(()=>rate('test-limit',2),e=>e.status===429);});
 test('Media magic validates actual image/container types',()=>{assert(magicOK('image/jpeg',Buffer.from('ffd8ff','hex')));assert(!magicOK('image/jpeg',Buffer.from('<html>')));assert(!magicOK('image/webp',Buffer.from('RIFF----HTML')));assert(magicOK('video/mp4',Buffer.from('000000186674797069736f6d','hex')));});
+
+import {passwordHash as passwordHashMin12,verifyPassword as verifyPasswordMin12} from '../lib/auth.mjs';
+import {test as testPasswordMin12} from 'node:test';
+import {strict as assertPasswordMin12} from 'node:assert';
+testPasswordMin12('Generated 12-character passwords are accepted; shorter passwords are rejected',async()=>{const accepted='Q6x!bR9%tY2z';const hashed=await passwordHashMin12(accepted);assertPasswordMin12.equal(await verifyPasswordMin12(accepted,hashed),true);await assertPasswordMin12.rejects(()=>passwordHashMin12('short12?'),/12/);});
