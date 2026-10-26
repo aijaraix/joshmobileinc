@@ -8,6 +8,13 @@ assert.equal(readFileSync('lib/request.mjs','utf8'),readFileSync('public/request
 assert(statSync('public/assets/josh-mobile-social.jpg').size<300000);
 for(const name of ['Brake pads','Suspension','Spark plugs','Engine air filters','Cabin air filters','Vehicle inspections'])assert(html.includes(name));
 assert(!html.includes('chatgpt.site'));
+assert(html.includes('name="vin" required'));
+assert(html.includes('name="address" required'));
+assert(html.includes('North Broward'));
+assert(!html.includes('Northern Broward'));
+assert(existsSync('public/owner/index.html'));
+assert(readFileSync('public/owner/index.html','utf8').includes('Your workday, organized.'));
+
 assert(!readFileSync('vercel.json','utf8').includes('rewrites'));
 assert(!html.includes('localStorage'));
 JSON.parse(html.match(/<script type="application\/ld\+json">(.*?)<\/script>/s)[1]);

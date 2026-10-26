@@ -16,10 +16,10 @@ function renderFiles(){
  const remove=document.createElement('button');remove.type='button';remove.className='remove-file';remove.textContent='×';remove.setAttribute('aria-label','Remove '+file.name);remove.addEventListener('click',()=>{files.splice(i,1);renderFiles();showError('media-error','');});
  if(/^image\/(jpeg|png|webp)$/.test(file.type)){const img=document.createElement('img');const url=URL.createObjectURL(file);objectUrls.push(url);img.src=url;img.alt='Selected photo: '+file.name;card.append(img);}else{const badge=document.createElement('span');badge.className='file-type';badge.textContent=file.type.startsWith('video/')?'▷ VIDEO':'PHOTO';card.append(badge);}
  const caption=document.createElement('p');caption.textContent=file.name+' · '+(file.size/1024/1024).toFixed(1)+' MB';card.append(remove,caption);$('file-previews').append(card);});
- $('media-hint').textContent=files.length?`${files.length} file(s) selected on your device. Review your request next to see sharing options. Nothing has been uploaded.`:'Your files stay on your device until you choose a sharing app and send them. No background uploads.';
+ $('media-hint').textContent=files.length?`${files.length} file(s) selected on your device. Review your request next to see sharing options. Nothing has been uploaded.`:'Your files stay on your device until you submit online or deliberately share them. No background uploads.';
 }
 for(const id of ['media-picker','photo-capture','video-capture'])$(id).addEventListener('change',e=>{const additions=Array.from(e.target.files||[]);const err=fileError(files,additions);if(err)showError('media-error',err);else{files.push(...additions);renderFiles();showError('media-error','');}e.target.value='';});
-form.addEventListener('submit',e=>{e.preventDefault();const d=Object.fromEntries(new FormData(form));d.consent=!!d.consent;const err=validateRequest(d);showError('form-error',err);if(err)return;
+form.addEventListener('submit',e=>{e.preventDefault();const d=Object.fromEntries(new FormData(form));d.consent=!!d.consent;d.vin=String(d.vin||'').toUpperCase().replace(/\s/g,'');const err=validateRequest(d);showError('form-error',err);if(err)return;
  if(JSON.stringify(preparedData)!==JSON.stringify(d)){requestId=crypto.randomUUID?.()||null;}preparedData=d;prepared=requestText(d,files);$('submit-online').hidden=!onlineConnected||!requestId;$('request-summary').textContent=prepared;const links=deliveryLinks(prepared);$('send-whatsapp').href=links.whatsapp;$('send-email').href=links.email;
  const ios=/iPhone|iPad|iPod/.test(navigator.userAgent);$('send-sms').href=ios?links.sms.replace('?body=','&body='):links.sms;
  let canShare=false;try{canShare=files.length>0&&!!navigator.canShare&&navigator.canShare({files});}catch{}
@@ -34,7 +34,7 @@ $('submit-online').addEventListener('click',async()=>{
   const payloadFiles=await Promise.all(files.map(f=>new Promise((resolve,reject)=>{const reader=new FileReader();reader.onerror=()=>reject(new Error('Could not read selected file'));reader.onload=()=>resolve({name:f.name,type:f.type,base64:String(reader.result).split(',')[1]});reader.readAsDataURL(f);}))); 
   const r=await fetch('/api/booking',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({requestId,details:preparedData,files:payloadFiles})});
   const result=await r.json();if(!r.ok||!result.ok)throw new Error(result.error||'The request could not be confirmed.');
-  $('share-status').textContent='Your request was saved for Josh. Reference: '+result.id+'. This is not a confirmed appointment. '+(result.notificationSent?'Josh was notified by email.':'Please also contact Josh directly; the email notification could not be confirmed.');
+  $('share-status').textContent='Request saved privately. Reference: '+result.id+'. Your preferred date is not a confirmed appointment. For quick coordination, text Josh as well.;
   button.textContent='Request saved — awaiting Josh’s confirmation';
  }catch(err){$('share-status').textContent=String(err.message||'We could not confirm your submission. Please contact Josh directly.');button.disabled=false;}
 });

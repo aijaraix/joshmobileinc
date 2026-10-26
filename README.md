@@ -6,7 +6,7 @@ Photographic public site for `joshmobileinc.com`. This is the complete rebuild, 
 
 **Works without Google authorization:** public pages, all six services, contact buttons, photo gallery, preferred-date/vehicle/job request builder, camera/file selection with local previews, WhatsApp/text/email handoff, native file sharing where supported, request text download, accessibility/mobile navigation, metadata/social JPEG, sitemap and robots.
 
-**Not active until separately authorized and tested:** persisted online intake, private administrator sign-in, Google Drive uploads, calendar synchronization and reminder emails. The `/owner/` entrance labels this honestly. `/owner/preview` contains fictional sample data, clearly labeled. The request form never calls a message prepared or an app opened “submitted” or “confirmed.”
+**Private online intake and administrator access:** enabled when encrypted Vercel admin credentials and a connected private Vercel Blob store are configured and verified. Google calendar synchronization, automatic two-way SMS, and reminder emails are separate follow-ups. The `/owner/` entrance labels this honestly. `/owner/preview` contains fictional sample data, clearly labeled. The request form never calls a message prepared or an app opened “submitted” or “confirmed.”
 
 ## Structure
 
@@ -35,8 +35,12 @@ Do not add an external rewrite to the ChatGPT preview. Do not deploy a text-only
 
 ## Facts
 
-Mobile service in Northern Broward County, Florida, by appointment only. Phone +1 646 796 7322. Email joshmobileinc@gmail.com. Instagram joshmobileinc. No invented reviews, credentials, prices, business address, hours, or guaranteed availability.
+Mobile service in North Broward County, Florida, by appointment only. Phone +1 646 796 7322. Email joshmobileinc@gmail.com. Instagram joshmobileinc. No invented reviews, credentials, prices, business address, hours, or guaranteed availability.
 
 ## Media
 
 Work photographs were supplied for this business website. Original hero and avatar are design assets from the earlier project. All deployed image files are stripped of location metadata. Do not publish private chat screenshots, DNS screenshots, customer job records, or credentials.
+
+## Secure admin setup
+
+Two administrator emails are allowlisted: business owner and site manager. Encrypted `JM_OWNER_PASSWORD_HASH`, `JM_MANAGER_PASSWORD_HASH`, `JM_SESSION_SECRET` are required, in addition to private `BLOB_READ_WRITE_TOKEN`. Set these only in production environment, never in source. Admin operations deny unauthorized access. Customer SMS messages are not automatically synced; conversations can be logged manually. Any initial passwords must be changed after first login.
