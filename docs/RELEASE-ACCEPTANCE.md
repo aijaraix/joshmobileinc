@@ -1,7 +1,18 @@
-# Blue/white appointment workspace release
+# Saved-request release acceptance
 
-Validated before publishing: 41 Node tests pass, including a 29-check account/request/appointment lifecycle. Desktop 1440px and mobile 390px browser checks cover public form review, VIN/address requirements, submit UI, unique service photos, no horizontal overflow, real staff sign-in controls, and no JavaScript exceptions. Browser request delivery was mocked for this predeployment UI test. Real private storage is separately gated during the production build via scripts/smoke.mjs.
+## Candidate checks completed locally
 
-Production build must pass private account activation/login, unauthorized-denial, request persistence/retry, private media attachment, conflict/stale-write protection, conversation notes, completion, logout and password-revocation checks. Synthetic records exist only in a temporary smoke prefix and are removed in finally. This never activates actual staff accounts.
+- `npm test`: 47 passing Node checks, including a 37-check private intake/staff lifecycle.
+- `npm run build`: passed asset, six-service, social metadata, JSON-LD, direct-hosting, and browser-bundle checks.
+- `node --check` passed for the customer/staff browser scripts and APIs.
+- The browser harness has been updated for the save-first receipt. It needs an available Chromium runtime to execute; it is not evidence of real Blob storage or production headers.
 
-Customer message delivery is not automatic: secure requests are saved in the inbox; optional SMS/WhatsApp/email links open the customer's chosen app. Staff confirms by text. ICS download adds calendar events with display alarms. Automatic SMS sync, email notifications and Google synchronization are not included in this release.
+## Required only after an approved deployment
+
+1. Verify the production CSP contains `https://vercel.com/api/blob/` in `connect-src` and run a normal public-browser request with genuine JPEG, image, and short video files—no mocked APIs or altered browser security.
+2. Confirm exactly one saved reference appears in the customer receipt, persisted private job, authenticated staff search, and optional short message. Cancel messaging and confirm the job remains.
+3. With an authorized staff account, open the same production job, inspect private media and status, save a note, reload, and retrieve it again. Record this as **UNVERIFIED** until an authorized person completes it.
+4. Test closed/blocked dates, a daylight-saving edge, overlapping confirmation, hours changes that preserve conflicts, canceled-calendar rejection, stale edits, and hidden/offline dashboard refresh behavior.
+5. If owner email is authorized, verify one actual inbox receipt; otherwise leave the staff status at **Automatic owner email alerts are NOT ACTIVE**.
+
+SMS and WhatsApp open the customer’s ordinary app only after saving. The website does not send, deliver, read, or synchronize those messages. ICS export is one-way, not calendar sync. Automatic SMS, WhatsApp API use, payment, and automatic reminders are deliberately excluded.

@@ -1,23 +1,336 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><meta name="theme-color" content="#093c88"><title>Staff Sign In | Josh Mobile</title><link rel="canonical" href="https://joshmobileinc.com/owner/"><meta property="og:type" content="website"><meta property="og:site_name" content="Josh Mobile"><meta property="og:title" content="Josh Mobile — Mobile Mechanic in North Broward"><meta property="og:description" content="Brakes, suspension, spark plugs, ignition coils, filters and inspections. Request service by appointment."><meta property="og:url" content="https://joshmobileinc.com/"><meta property="og:image" content="https://joshmobileinc.com/assets/josh-mobile-share-photo-v2.jpg"><meta property="og:image:alt" content="Josh Mobile — North Broward mobile mechanic, real automotive work"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:image" content="https://joshmobileinc.com/assets/josh-mobile-share-photo-v2.jpg"><meta name="twitter:title" content="Josh Mobile — Mobile Mechanic in North Broward"><meta name="twitter:description" content="Brake pads, rotors, suspension, spark plugs, ignition coils, filters and inspections. By appointment."><link rel="icon" href="/assets/jm-mark.svg"><link rel="stylesheet" href="/owner/dashboard.css"><script src="/owner/dashboard.js" defer></script></head><body>
-<header class="topbar"><a href="/" class="wordmark" aria-label="Josh Mobile homepage"><span class="monogram">JM</span><span>JOSH MOBILE<small>MOBILE MECHANIC · NORTH BROWARD</small></span></a><div class="rightnav"><a href="/">View website ↗</a><button id="signout" type="button" class="linkbtn" hidden>Sign out</button></div></header>
-<main><section id="login-screen" class="login-screen" aria-labelledby="login-title"><div class="login-panel"><div class="tag">PRIVATE BUSINESS WORKSPACE</div><h1 id="login-title">Welcome back.</h1><p class="supporting" id="login-subtitle">Your customers, appointments and jobs—organized in one place.</p><form id="login-form"><label for="login-email">Email address</label><input id="login-email" name="email" type="email" autocomplete="username" required placeholder="you@example.com" maxlength="180"><label for="login-password">Password</label><input id="login-password" name="password" type="password" autocomplete="current-password" required minlength="12" maxlength="128"><label id="confirm-label" hidden>Confirm password<input id="confirm-password" type="password" autocomplete="new-password" minlength="12" maxlength="128"></label><button type="submit" class="primary full" id="login-submit">Sign in securely ↗</button><p class="message" id="login-message" role="status" aria-live="polite"></p></form><p class="subtle">First visit? Open your private activation email. Need access help? <a href="mailto:sholom@aicreates.ai?subject=Josh%20Mobile%20access%20help">Contact the site administrator</a>.</p><div class="login-foot">🔒 Private access for approved Josh Mobile administrators only.</div></div><div class="login-aside"><p class="tag">BUILT FOR THE WORKDAY</p><h2>Less paperwork.<br><span>More time fixing cars.</span></h2><p>Review requests, prepare parts, check the VIN, and stay on top of every appointment.</p></div></section>
-<section id="dashboard-screen" hidden aria-label="Appointment dashboard"><div class="dashboard-header"><div><p class="tag">JOSH MOBILE · PRIVATE WORKSPACE</p><h1>Good to see you.</h1><p id="today-date" class="subtle"></p></div><div class="header-actions"><span id="admin-email" class="signed-in"></span><button id="new-job-btn" class="primary" type="button">＋ Add appointment</button></div></div>
-<div class="metrics"><div><span>New requests</span><strong id="count-new">0</strong></div><div><span>Upcoming appointments</span><strong id="count-upcoming">0</strong></div><div><span>Total customers</span><strong id="count-customers">0</strong></div><div><span>Completed jobs</span><strong id="count-done">0</strong></div></div>
-<div class="workspace-grid"><section class="list-panel"><div class="panel-top"><div><h2>Customers & jobs</h2><p class="subtle">Everything in one place</p></div><button class="icon-button" id="refresh-jobs" type="button" aria-label="Refresh jobs">↻</button></div><label class="search-label"><span class="sr-only">Search customers or vehicles</span><input id="search-jobs" type="search" placeholder="Search customer, vehicle, VIN or phone…"></label><div id="job-filters" class="segmented" role="group" aria-label="Filter jobs"><button data-filter="upcoming" class="active" type="button">Upcoming</button><button data-filter="requested" type="button">Requests</button><button data-filter="all" type="button">All jobs</button></div><p id="list-count" class="subtle small-text"></p><div id="jobs-list" class="job-list" aria-live="polite"></div></section>
-<section class="detail-panel" id="detail-panel"><div id="empty-detail" class="empty-detail"><div class="empty-symbol">◎</div><h2>Select an appointment</h2><p>Choose a customer from the list to see their car, VIN, address, photos and preparation notes.</p></div><div id="job-detail" hidden><div class="detail-heading"><div><span id="job-status" class="status"></span><h2 id="job-title"></h2><p id="job-summary" class="subtle"></p></div><div class="job-actions"><a id="text-customer" class="primary" href="#">Text customer ↗</a><a id="call-customer" class="outline" href="#">Call</a><a id="map-customer" class="outline" href="#" target="_blank" rel="noopener noreferrer">Directions ↗</a><a id="calendar-job" class="outline" href="#">Add to calendar</a></div></div><div class="detail-block"><h3>Customer & location</h3><div class="info-grid"><div><span>Name</span><strong id="detail-name"></strong></div><div><span>Phone</span><strong id="detail-phone"></strong></div><div><span>Email</span><strong id="detail-email"></strong></div><div><span>Address</span><strong id="detail-address"></strong></div><div><span>Vehicle</span><strong id="detail-car"></strong></div><div><span>VIN</span><strong id="detail-vin"></strong></div></div></div><div class="detail-block"><h3>Requested work</h3><p id="detail-description"></p><p class="subtle" id="detail-preferred"></p><div id="detail-media" class="photo-grid"></div></div><form id="job-form"><div class="detail-block"><h3>Appointment & preparation</h3><div class="form-grid"><label>Status<select id="job-status-input" name="status"><option value="requested">New request</option><option value="confirmed">Confirmed</option><option value="completed">Completed</option><option value="cancelled">Cancelled</option></select></label><label>Confirmed date & time <small>(Eastern)</small><input id="job-confirmed-at" type="datetime-local"></label><label>Duration (minutes)<input id="job-duration" type="number" min="30" max="480" step="15" value="60" required></label><label class="wide">VIN (required before confirming)<input id="job-vin-input" maxlength="17" minlength="17" autocapitalize="characters" autocomplete="off" pattern="[A-HJ-NPR-Za-hj-npr-z0-9]{17}"></label><label class="wide">Address / work location<input id="job-address-input" maxlength="240" required></label><label class="wide">City / ZIP<input id="job-city-input" maxlength="100" required></label><label class="wide">Private job notes<textarea id="job-notes" rows="4" maxlength="6000" placeholder="What to check, questions for the customer…"></textarea></label><label class="wide">Parts & tools to bring<textarea id="job-parts" rows="4" maxlength="4000" placeholder="Pads, rotors, jack stands, sockets…"></textarea></label></div><button class="primary" id="save-job" type="submit">Save job details</button><p class="message" id="save-message" role="status"></p></div></form><section class="detail-block"><h3>Conversation & job history</h3><p class="subtle">Text from your phone to keep the original SMS thread. Record important replies here for the team. Messages are not automatically imported.</p><form id="communication-form"><label>Channel<select id="communication-type"><option value="sms">Text message</option><option value="whatsapp">WhatsApp</option><option value="call">Phone call</option><option value="note">Internal note</option></select></label><label>What was discussed?<textarea id="communication-text" rows="3" maxlength="2000" required></textarea></label><button class="primary" type="submit">Save conversation note</button><p id="communication-message" class="message" role="status"></p></form><div id="timeline"></div></section></div></section></div>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<meta name="theme-color" content="#093c88">
+<title>Staff Sign In | Josh Mobile</title>
+<link rel="canonical" href="https://joshmobileinc.com/owner/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Josh Mobile">
+<meta property="og:title" content="Josh Mobile — Mobile Mechanic in North Broward">
+<meta property="og:description" content="Brakes, suspension, spark plugs, ignition coils, filters and inspections. Request service by appointment.">
+<meta property="og:url" content="https://joshmobileinc.com/">
+<meta property="og:image" content="https://joshmobileinc.com/assets/josh-mobile-share-photo-v2.jpg">
+<meta property="og:image:alt" content="Josh Mobile — North Broward mobile mechanic, real automotive work">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://joshmobileinc.com/assets/josh-mobile-share-photo-v2.jpg">
+<meta name="twitter:title" content="Josh Mobile — Mobile Mechanic in North Broward">
+<meta name="twitter:description" content="Brake pads, rotors, suspension, spark plugs, ignition coils, filters and inspections. By appointment.">
+<link rel="icon" href="/assets/jm-mark.svg">
+<link rel="stylesheet" href="/owner/dashboard.css">
+<script src="/owner/dashboard.js" defer>
+</script>
+</head>
+<body>
+<header class="topbar">
+<a href="/" class="wordmark" aria-label="Josh Mobile homepage">
+<span class="monogram">JM</span>
+<span>JOSH MOBILE<small>MOBILE MECHANIC · NORTH BROWARD</small>
+</span>
+</a>
+<div class="rightnav">
+<a href="/">View website ↗</a>
+<button id="signout" type="button" class="linkbtn" hidden>Sign out</button>
+</div>
+</header>
+<main>
+<section id="login-screen" class="login-screen" aria-labelledby="login-title">
+<div class="login-panel">
+<div class="tag">PRIVATE BUSINESS WORKSPACE</div>
+<h1 id="login-title">Welcome back.</h1>
+<p class="supporting" id="login-subtitle">Your customers, appointments and jobs—organized in one place.</p>
+<form id="login-form">
+<label for="login-email">Email address</label>
+<input id="login-email" name="email" type="email" autocomplete="username" required placeholder="you@example.com" maxlength="180">
+<label for="login-password">Password</label>
+<input id="login-password" name="password" type="password" autocomplete="current-password" required minlength="12" maxlength="128">
+<label id="confirm-label" hidden>Confirm password<input id="confirm-password" type="password" autocomplete="new-password" minlength="12" maxlength="128">
+</label>
+<button type="submit" class="primary full" id="login-submit">Sign in securely ↗</button>
+<p class="message" id="login-message" role="status" aria-live="polite">
+</p>
+</form>
+<p class="subtle">First visit? Open your private activation email. Need access help? <a href="mailto:sholom@aicreates.ai?subject=Josh%20Mobile%20access%20help">Contact the site administrator</a>.</p>
+<div class="login-foot">🔒 Private access for approved Josh Mobile administrators only.</div>
+</div>
+<div class="login-aside">
+<p class="tag">BUILT FOR THE WORKDAY</p>
+<h2>Less paperwork.<br>
+<span>More time fixing cars.</span>
+</h2>
+<p>Review requests, prepare parts, check the VIN, and stay on top of every appointment.</p>
+</div>
+</section>
+<section id="dashboard-screen" hidden aria-label="Appointment dashboard">
+<div class="dashboard-header">
+<div>
+<p class="tag">JOSH MOBILE · PRIVATE WORKSPACE</p>
+<h1>Good to see you.</h1>
+<p id="today-date" class="subtle">
+</p>
+</div>
+<div class="header-actions">
+<span id="admin-email" class="signed-in">
+</span>
+<span id="live-status" class="signed-in" role="status">Checking for new requests…</span>
+<button id="new-job-btn" class="primary" type="button">＋ Add appointment</button>
+</div>
+</div>
+<div class="metrics">
+<div>
+<span>New requests</span>
+<strong id="count-new">0</strong>
+</div>
+<div>
+<span>Upcoming appointments</span>
+<strong id="count-upcoming">0</strong>
+</div>
+<div>
+<span>Total customers</span>
+<strong id="count-customers">0</strong>
+</div>
+<div>
+<span>Completed jobs</span>
+<strong id="count-done">0</strong>
+</div>
+</div>
+<div class="workspace-grid">
+<section class="list-panel">
+<div class="panel-top">
+<div>
+<h2>Customers & jobs</h2>
+<p class="subtle">Everything in one place</p>
+</div>
+<button class="icon-button" id="refresh-jobs" type="button" aria-label="Refresh jobs">↻</button>
+</div>
+<label class="search-label">
+<span class="sr-only">Search customers or vehicles</span>
+<input id="search-jobs" type="search" placeholder="Search customer, vehicle, VIN or phone…">
+</label>
+<div id="job-filters" class="segmented" role="group" aria-label="Filter jobs">
+<button data-filter="upcoming" class="active" type="button">Upcoming</button>
+<button data-filter="requested" type="button">Requests</button>
+<button data-filter="all" type="button">All jobs</button>
+</div>
+<p id="list-count" class="subtle small-text">
+</p>
+<div id="jobs-list" class="job-list" aria-live="polite">
+</div>
+</section>
+<section class="detail-panel" id="detail-panel">
+<div id="empty-detail" class="empty-detail">
+<div class="empty-symbol">◎</div>
+<h2>Select an appointment</h2>
+<p>Choose a customer from the list to see their car, VIN, address, photos and preparation notes.</p>
+</div>
+<div id="job-detail" hidden>
+<div class="detail-heading">
+<div>
+<span id="job-status" class="status">
+</span>
+<h2 id="job-title">
+</h2>
+<p id="job-reference" class="subtle small-text">
+</p>
+<p id="job-summary" class="subtle">
+</p>
+</div>
+<div class="job-actions">
+<a id="text-customer" class="primary" href="#">Text customer ↗</a>
+<a id="call-customer" class="outline" href="#">Call</a>
+<a id="map-customer" class="outline" href="#" target="_blank" rel="noopener noreferrer">Directions ↗</a>
+<a id="calendar-job" class="outline" href="#">Add to calendar</a>
+</div>
+</div>
+<div class="detail-block">
+<h3>Customer & location</h3>
+<div class="info-grid">
+<div>
+<span>Name</span>
+<strong id="detail-name">
+</strong>
+</div>
+<div>
+<span>Phone</span>
+<strong id="detail-phone">
+</strong>
+</div>
+<div>
+<span>Email</span>
+<strong id="detail-email">
+</strong>
+</div>
+<div>
+<span>Address</span>
+<strong id="detail-address">
+</strong>
+</div>
+<div>
+<span>Vehicle</span>
+<strong id="detail-car">
+</strong>
+</div>
+<div>
+<span>VIN</span>
+<strong id="detail-vin">
+</strong>
+</div>
+</div>
+</div>
+<div class="detail-block">
+<h3>Requested work</h3>
+<p id="detail-description">
+</p>
+<p class="subtle" id="detail-preferred">
+</p>
+<div id="detail-media" class="photo-grid">
+</div>
+<p id="detail-media-status" class="subtle">
+</p>
+<p id="detail-alert-status" class="subtle">
+</p>
+<button id="retry-alert" class="outline" type="button" hidden>Retry owner alert</button>
+</div>
+<form id="job-form">
+<div class="detail-block">
+<h3>Appointment & preparation</h3>
+<div class="form-grid">
+<label>Status<select id="job-status-input" name="status">
+<option value="requested">New request</option>
+<option value="confirmed">Confirmed</option>
+<option value="completed">Completed</option>
+<option value="cancelled">Cancelled</option>
+</select>
+</label>
+<label>Confirmed date & time <small>(Eastern)</small>
+<input id="job-confirmed-at" type="datetime-local">
+</label>
+<label>Duration (minutes)<input id="job-duration" type="number" min="30" max="480" step="15" value="60" required>
+</label>
+<label class="wide">VIN (required before confirming)<input id="job-vin-input" maxlength="17" minlength="17" autocapitalize="characters" autocomplete="off" pattern="[A-HJ-NPR-Za-hj-npr-z0-9]{17}">
+</label>
+<label class="wide">Address / work location<input id="job-address-input" maxlength="240" required>
+</label>
+<label class="wide">City / ZIP<input id="job-city-input" maxlength="100" required>
+</label>
+<label class="wide">Private job notes<textarea id="job-notes" rows="4" maxlength="6000" placeholder="What to check, questions for the customer…">
+</textarea>
+</label>
+<label class="wide">Parts & tools to bring<textarea id="job-parts" rows="4" maxlength="4000" placeholder="Pads, rotors, jack stands, sockets…">
+</textarea>
+</label>
+</div>
+<button class="primary" id="save-job" type="submit">Save job details</button>
+<p class="message" id="save-message" role="status">
+</p>
+</div>
+</form>
+<section class="detail-block">
+<h3>Conversation & job history</h3>
+<p class="subtle">Text from your phone to keep the original SMS thread. Record important replies here for the team. Messages are not automatically imported.</p>
+<form id="communication-form">
+<label>Channel<select id="communication-type">
+<option value="sms">Text message</option>
+<option value="whatsapp">WhatsApp</option>
+<option value="call">Phone call</option>
+<option value="note">Internal note</option>
+</select>
+</label>
+<label>What was discussed?<textarea id="communication-text" rows="3" maxlength="2000" required>
+</textarea>
+</label>
+<button class="primary" type="submit">Save conversation note</button>
+<p id="communication-message" class="message" role="status">
+</p>
+</form>
+<div id="timeline">
+</div>
+</section>
+</div>
+</section>
+</div>
 <details class="account-settings" id="availability-settings">
 <summary>Working hours & availability</summary>
-<div class="owner-card"><p>Choose the hours customers can request. Josh confirms each booking after checking the vehicle, parts and travel. Times use Eastern Time.</p>
+<div class="owner-card">
+<p>Choose the hours customers can request. Josh confirms each booking after checking the vehicle, parts and travel. Times use Eastern Time.</p>
 <form id="availability-form">
-<label><input id="availability-enabled" type="checkbox"> Show available appointment times on the public website</label>
-<div id="availability-days" class="form-grid"></div>
+<label>
+<input id="availability-enabled" type="checkbox"> Show available appointment times on the public website</label>
+<div id="availability-days" class="form-grid">
+</div>
 <label>Dates off (YYYY-MM-DD, one per line)
-<textarea id="availability-blocked" rows="3" placeholder="2026-12-25"></textarea></label>
+<textarea id="availability-blocked" rows="3" placeholder="2026-12-25">
+</textarea>
+</label>
 <p class="subtle">One-hour request windows. Confirmed jobs are automatically unavailable. Until you enable hours, customers can continue requesting morning, afternoon or flexible windows.</p>
 <button type="submit" class="primary">Save working hours</button>
-<p class="message" id="availability-message" role="status"></p></form></div>
+<p class="message" id="availability-message" role="status">
+</p>
+</form>
+</div>
 </details>
-<details class="account-settings"><summary>Account security</summary><form id="change-password-form"><h3>Change your password</h3><label>Current password<input type="password" id="old-password" autocomplete="current-password" required></label><label>New password <small>12+ characters</small><input type="password" id="new-password" autocomplete="new-password" minlength="12" maxlength="128" required></label><button class="primary" type="submit">Change password</button><p class="message" id="password-message" role="status"></p></form></details>
-</section></main>
-<dialog id="add-dialog"><form id="add-job-form"><div class="modal-head"><h2>New job / customer</h2><button type="button" class="icon-button" id="close-dialog" aria-label="Close">×</button></div><p class="subtle">Add a customer who called or texted you. Confirm the appointment after collecting their VIN.</p><div class="form-grid"><label>Customer name<input name="name" required maxlength="90"></label><label>Phone<input name="phone" type="tel" required maxlength="30"></label><label>Email<input name="email" type="email" maxlength="160"></label><label>Vehicle year<input name="year" inputmode="numeric" maxlength="4"></label><label>Make<input name="make" maxlength="60"></label><label>Model<input name="model" maxlength="80"></label><label class="wide">VIN<input name="vin" maxlength="17" minlength="17" placeholder="17 characters"></label><label class="wide">Street address<input name="address" required maxlength="240" autocomplete="street-address"></label><label class="wide">City / ZIP<input name="city" required maxlength="100"></label><label class="wide">Service<input name="service" required maxlength="100" placeholder="Brake pads and rotors"></label><label class="wide">Job details<textarea name="description" rows="3" maxlength="1800"></textarea></label><label>Preferred date<input name="date" type="date"></label><label>Preferred time<input name="time" maxlength="40" placeholder="Morning"></label></div><button class="primary full" type="submit">Save customer request</button><p id="add-message" class="message" role="status"></p></form></dialog>
-<footer><span>Josh Mobile Inc. · Private operations</span><a href="/">Public website ↗</a></footer></body></html>
+<details class="account-settings">
+<summary>Account security</summary>
+<form id="change-password-form">
+<h3>Change your password</h3>
+<label>Current password<input type="password" id="old-password" autocomplete="current-password" required>
+</label>
+<label>New password <small>12+ characters</small>
+<input type="password" id="new-password" autocomplete="new-password" minlength="12" maxlength="128" required>
+</label>
+<button class="primary" type="submit">Change password</button>
+<p class="message" id="password-message" role="status">
+</p>
+</form>
+</details>
+</section>
+</main>
+<dialog id="add-dialog">
+<form id="add-job-form">
+<div class="modal-head">
+<h2>New job / customer</h2>
+<button type="button" class="icon-button" id="close-dialog" aria-label="Close">×</button>
+</div>
+<p class="subtle">Add a customer who called or texted you. Confirm the appointment after collecting their VIN.</p>
+<div class="form-grid">
+<label>Customer name<input name="name" required maxlength="90">
+</label>
+<label>Phone<input name="phone" type="tel" required maxlength="30">
+</label>
+<label>Email<input name="email" type="email" maxlength="160">
+</label>
+<label>Vehicle year<input name="year" inputmode="numeric" maxlength="4">
+</label>
+<label>Make<input name="make" maxlength="60">
+</label>
+<label>Model<input name="model" maxlength="80">
+</label>
+<label class="wide">VIN<input name="vin" maxlength="17" minlength="17" placeholder="17 characters">
+</label>
+<label class="wide">Street address<input name="address" required maxlength="240" autocomplete="street-address">
+</label>
+<label class="wide">City / ZIP<input name="city" required maxlength="100">
+</label>
+<label class="wide">Service<input name="service" required maxlength="100" placeholder="Brake pads and rotors">
+</label>
+<label class="wide">Job details<textarea name="description" rows="3" maxlength="1800">
+</textarea>
+</label>
+<label>Preferred date<input name="date" type="date">
+</label>
+<label>Preferred time<input name="time" maxlength="40" placeholder="Morning">
+</label>
+</div>
+<button class="primary full" type="submit">Save customer request</button>
+<p id="add-message" class="message" role="status">
+</p>
+</form>
+</dialog>
+<footer>
+<span>Josh Mobile Inc. · Private operations</span>
+<a href="/">Public website ↗</a>
+</footer>
+</body>
+</html>

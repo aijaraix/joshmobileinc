@@ -5,6 +5,7 @@ const WEEK=[[],['09:00','17:00'],['09:00','17:00'],['09:00','17:00'],['09:00','1
 const SETTINGS={enabled:true,days:WEEK,blocked:[],slotMinutes:60};
 test('Hours are off until staff saves an enabled schedule',()=>{
  assert.equal(DEFAULT.enabled,false);
+ assert.deepEqual(DEFAULT.days,[[],[],[],[],[],[],[]]);
  assert.equal(slotOptions(DEFAULT,'2026-11-02',[]).length,0);
 });
 test('Business hours include weekday slots but exclude Sunday',()=>{

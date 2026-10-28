@@ -1,29 +1,35 @@
 # Josh Mobile Inc. — public site and private appointment workspace
 
-Production: https://joshmobileinc.com · Staff: /owner · North Broward County, Florida.
+Production: https://joshmobileinc.com · Staff: `/owner` · North Broward County, Florida.
 
-## Release scope
+## Customer request flow
 
-The blue-and-white photographic website includes six services, distinct service/work photos, Instagram, VIN and service-address collection, private online service requests, and direct text/WhatsApp/email options. Customers do not sign in. A request does not reserve a slot: staff confirms it.
+There is one intake path: complete the form → save one private job → upload selected media → show a receipt → optionally open SMS or WhatsApp. A request is not an appointment reservation; Josh confirms the time, work, location, parts, and price.
 
-The single-page staff dashboard supports customer search, requests/upcoming/completed jobs, private attachments, VIN/address, scheduling with conflict checks, notes, parts/tools, manually added jobs, and a conversation timeline. SMS opens the staff member's phone app; conversation summaries are recorded manually. No automatic two-way SMS ingestion, email notifications, Google sign-in, Google Calendar sync, or email reminders are claimed. Calendar exports include local device reminder instructions.
+Every saved request has a collision-checked `JM-XXXXXXXX` reference. The originating browser keeps only an opaque recovery proof in `sessionStorage`, never customer details. A repeated submit with the same details and proof returns the same job and a fresh short-lived upload capability; a UUID or reference alone cannot read, edit, or upload to a job. Changed data with the same idempotency key is rejected.
 
-## Authentication and storage
+The receipt message contains only the reference. SMS and WhatsApp links open the customer's own messaging app after a fresh tap; they do not send, deliver, or sync a message. The public site has no email submission path, no customer login, no automatic two-way SMS/WhatsApp sync, and no paid messaging provider.
 
-Only two approved staff addresses are allowed server-side. Each receives an individual, one-use, time-limited activation invitation and creates a 16–128-character password. Passwords use scrypt with random salts; sessions use signed Secure/HttpOnly/SameSite=Strict cookies plus revocable private server records. A password change revokes prior sessions. Recovery is operator-assisted through the managing administrator; there is no public account registration.
+## Staff workspace
 
-All job records, account hashes, sessions and media are stored in the existing private Vercel Blob store, not GitHub or static files. Conditional writes protect concurrent edits; a scheduling lock and overlap checks protect appointments. Private media retrieval requires staff authentication. Upload capabilities are limited to a single request, declared type/size and 30-minute lifetime; file signatures are checked before attachments appear.
+The private dashboard supports search by reference, name, phone, vehicle, or VIN; private media; attachment receipt/failure status; notes, parts/tools, conversation history with staff attribution; phone-only manual jobs; appointment confirmation/rescheduling/cancellation/completion; calendar export for confirmed jobs only; and an inexpensive active-dashboard change check. Refresh pauses while hidden or offline and does not overwrite dirty notes.
 
-Production-only configuration: BLOB_READ_WRITE_TOKEN (managed store connection), JM_SESSION_SECRET, JM_OWNER_INVITE_HASH, JM_MANAGER_INVITE_HASH, JM_INVITE_EXPIRES, JM_BOOKING_ENABLED=true. Never commit raw invitation tokens, passwords, cookies, environment files, or customer records. The old integrations/google folder is an optional archived approach and is NOT the deployed runtime.
+Only `joshmobileinc@gmail.com` and `sholom@aicreates.ai` can sign in. Each uses an individual activation/password account. Passwords use scrypt; sessions are signed, Secure, HttpOnly, SameSite=Strict cookies backed by revocable private records. Recovery is operator-assisted through the managing administrator; there is no public PIN or password-reset bypass.
 
-## Build and verification
+## Storage, uploads, and scheduling
 
-Node 24; npm ci; npm test; npm run build. Dependencies are pinned in package-lock.json. Vercel uses public/ output and five API handlers. The production build runs an acceptance scenario against real private storage under an isolated smoke/<random>/ prefix, cleans up that prefix, and restores real environment values. It does not consume real staff invitations.
+Jobs, account hashes, sessions, reference claims, notification state, and media are private Vercel Blob objects—not GitHub or static site files. Media is limited to six files, 15 MB each, 30 MB total. JPG/PNG/WebP and MP4/MOV/WebM are accepted; HEIC receives conversion guidance. Browser uploads have progress, a 90-second bound, partial-success handling, signature checks, and retry/recovery support. The CSP allows the precise Blob SDK upload endpoint `https://vercel.com/api/blob/`.
 
-Tests cover request validation, VIN, upload limits, activation/login, wrong-user and cross-site denial, secure sessions, private persistence, media validation, stale edit rejection, appointment conflicts, conversation notes, manual jobs, completion, logout and password revocation.
+Hours remain staff-configured in America/New_York. Until enabled, the public form requests Morning/Afternoon/Flexible preferences. When enabled, both client and server reject closed, blocked, stale, or unavailable request times. Pending requests do not lock a slot. Confirmed appointments are overlap-checked, and later hour changes preserve conflicting existing appointments for staff review.
 
-## Operations
+## Owner alerts
 
-Requests are limited to six attachments, 15 MB each and 30 MB total. JPG/PNG/WebP and MP4/MOV/WebM are supported; HEIC can be sent directly through messaging instead. Staff lists are capped at 2,000 jobs to avoid unbounded scans. Monitor existing Vercel usage; private storage and function usage can incur charges beyond included allowances. No new VPS or paid database was provisioned for this release.
+The optional Apps Script MailApp route is **not active** until Josh authorizes it, its two Vercel Production secrets are configured, and an authorized inbox receives a synthetic alert. See [Owner alert setup](integrations/google/OWNER-ALERT-SETUP.md). It emits a signed, expiring, idempotent event containing only a reference, service, request time, and normal authenticated workspace link. “Accepted” means the provider accepted the handoff—not inbox delivery. No automatic appointment reminders are enabled.
 
-Use the staff footer link to sign in. Keep the public domain public, preview deployment protection enabled, and all private API responses no-store/noindex. Do not proxy this website to a ChatGPT preview.
+## Build and release checks
+
+Node 24: `npm ci`, `npm test`, `npm run build`. The current suite has 47 Node checks covering validation, idempotency/recovery proof, short reference creation, attachment status, private media, owner-alert privacy/idempotency, auth, scheduling, stale edits, calendar access, manual jobs, conversation history, logout, and password revocation. `tests/browser_acceptance.mjs` is an optional synthetic browser UI harness; it must not be treated as storage or deployed-Blob evidence.
+
+Production-only configuration: `BLOB_READ_WRITE_TOKEN`, `JM_SESSION_SECRET`, `JM_OWNER_INVITE_HASH`, `JM_MANAGER_INVITE_HASH`, `JM_INVITE_EXPIRES`, `JM_BOOKING_ENABLED=true`, and—only after owner authorization—`JM_ALERT_WEBHOOK_URL` plus `JM_ALERT_WEBHOOK_SECRET`. Never commit raw invitations, passwords, cookies, environment files, customer records, webhook URLs, or alert secrets.
+
+Monitor existing Vercel Blob/function usage; included usage is finite and overages may apply. No new VPS, database, phone number, paid messaging plan, or subscription is required by this code.
