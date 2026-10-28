@@ -1,9 +1,4 @@
 {
-  "results": [
-    "desktop: all images load, six services visible, no horizontal overflow",
-    "desktop: service selection, valid form, image preview/removal, review, correct recipients, edit preservation and no JS errors passed",
-    "mobile: all images load, six services visible, no horizontal overflow",
-    "mobile: service selection, valid form, image preview/removal, review, correct recipients, edit preservation and no JS errors passed"
-  ],
-  "note": "Synthetic browser tests. No messages sent to Josh. Logged-out local browser; live-domain tests follow deployment."
+  "results": [],
+  "note": "The save-first browser harness was updated for this candidate but was not executed here because no Chromium runtime is available. It uses mocked API responses when run, so it is never evidence of Vercel Blob uploads or deployed security headers. Production browser, compatible-device messaging, and authorized staff readback remain UNVERIFIED until approved deployment."
 }

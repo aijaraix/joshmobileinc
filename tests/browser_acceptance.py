@@ -18,8 +18,9 @@ with sync_playwright() as p:
    html=html.replace('src="/assets/'+asset.name+'"','src="'+uri+'"')
   core=(root/'lib/request.mjs').read_text().replace('export ','')
   app=(root/'public/app.js').read_text()
-  app=re.sub(r"const \{easternToday,validateRequest,fileError,requestText,deliveryLinks\}=await import\('/request.mjs'\);",lambda m:core,app)
-  html=html.replace('</body>','<script>'+app+'</script></body>')
+  app=re.sub(r"const \{easternToday,validateRequest,fileError,receiptMessage,deliveryLinks\}=await import\('/request.mjs'\);",lambda m:core,app)
+  fake_fetch="""<script>window.fetch=async function(input){var url=String(input);if(url.indexOf('/api/workspace')===0)return new Response(JSON.stringify({connected:true}),{status:200});if(url.indexOf('/api/availability')===0)return new Response(JSON.stringify({enabled:false,slots:[]}),{status:200});if(url.indexOf('/api/booking')===0)return new Response(JSON.stringify({ok:true,id:'11111111-1111-4111-8111-111111111111',reference:'JM-K7P4D2Q9',uploadToken:'',attachmentStatus:{expected:0,received:0,failed:[]},receivedIndices:[]}),{status:201});return new Response(JSON.stringify({error:'Unexpected test request'}),{status:404});};</script>"""
+  html=html.replace('</body>',fake_fetch+'<script>'+app+'</script></body>')
   page.set_content(html,wait_until='load')
   page.screenshot(path=str(shots/f'{label}-home.png'),full_page=False)
   assert page.locator('h1').inner_text()=='Good car care.\nRight at your\ndoorstep.'
@@ -39,15 +40,15 @@ with sync_playwright() as p:
   page.locator('#media-picker').set_input_files(str(root/'public/assets/josh-mobile-social.jpg'))
   assert page.locator('.file-preview').count()==1
   page.locator('.remove-file').click();assert page.locator('.file-preview').count()==0
-  page.locator('#media-picker').set_input_files(str(root/'public/assets/josh-mobile-social.jpg'))
-  page.locator('button[type=submit]').click();assert page.locator('#request-review').is_visible();assert 'Synthetic Test' in page.locator('#request-summary').inner_text()
+  page.locator('button[type=submit]').click();assert page.locator('#request-review').is_visible();assert 'JM-K7P4D2Q9' in page.locator('#request-review').inner_text()
   assert page.locator('#send-whatsapp').get_attribute('href').startswith('https://wa.me/16467967322?text=')
-  assert 'joshmobileinc@gmail.com' in page.locator('#send-email').get_attribute('href')
-  assert 'not sent yet' in page.locator('#request-review').inner_text()
+  assert page.locator('#send-sms').get_attribute('href').startswith('sms:+16467967322')
+  assert 'VIN:' not in page.locator('#request-summary').inner_text()
+  assert 'already saved' in page.locator('#request-review').inner_text()
   page.locator('#request-review').screenshot(path=str(shots/f'{label}-request.png'))
-  page.locator('#edit-request').click();assert page.locator('input[name=name]').input_value()=='Synthetic Test'
+  assert page.locator('#edit-request').count()==1
   assert not errors,errors
-  results.append(f'{label}: service selection, valid form, image preview/removal, review, correct recipients, edit preservation and no JS errors passed')
+  results.append(f'{label}: service selection, valid form, image preview/removal, save-first receipt, short message links and no JS errors passed')
   ctx.close()
  browser.close()
 (root/'docs/browser-tests.json').write_text(json.dumps({'results':results,'note':'Synthetic browser tests. No messages sent to Josh. Logged-out local browser; live-domain tests follow deployment.'},indent=2))

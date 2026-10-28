@@ -1,4 +1,4 @@
-export const SERVICES = Object.freeze({brakes:'Brake pads & rotors',suspension:'Suspension',ignition:'Spark plugs & ignition coils','engine-filter':'Engine air filters','cabin-filter':'Cabin air filters',inspection:'Vehicle inspections',other:'Not sure / something else'});
+export const SERVICES = Object.freeze({brakes:'Brake pads & rotors',suspension:'Suspension',ignition:'Spark plugs & ignition coils','engine-filter':'Engine air filters','cabin-filter':'Cabin air filters',inspection:'Vehicle inspections'});
 export const LIMITS = Object.freeze({count:6,perFile:15*1024*1024,total:30*1024*1024});
 export function easternToday(date = new Date()) {
   const parts = new Intl.DateTimeFormat('en-US',{timeZone:'America/New_York',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(date);
@@ -14,6 +14,7 @@ export function validateRequest(d,today=easternToday()) {
   const date=new Date(`${d.date}T12:00:00Z`); if(Number.isNaN(date.getTime())||date.toISOString().slice(0,10)!==d.date||d.date<today) return 'Please choose today or a future date.';
   if(!['Morning','Afternoon','Flexible'].includes(d.time)&&!/^([01]\d|2[0-3]):[0-5]\d$/.test(d.time||'')) return 'Please choose an available time.';
   if(!['Come to my location','Ask about bringing my car'].includes(d.locationType)) return 'Please choose a service location option.';
+  if(!['text','phone','email','whatsapp'].includes(d.preferredContact)) return 'Please choose how Josh should contact you.';
   const phone=String(d.phone||'').replace(/\D/g,''); if(phone.length<10||phone.length>15) return 'Please enter a phone number with at least 10 digits.';
   if(d.email&&(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(d.email)||d.email.length>160)) return 'Please enter a valid email address.';
   if(!/^[A-HJ-NPR-Z0-9]{17}$/.test(String(d.vin||'').trim().toUpperCase())) return 'Enter a valid 17-character VIN (letters I, O, Q are not used).';
@@ -26,6 +27,7 @@ export function fileError(existing,added) {
   if(all.length>LIMITS.count)return 'Please select no more than 6 photos or videos.';
   let total=0;
   for(const f of all) {
+    if((f.type||'')==='image/heic'||(f.type||'')==='image/heif')return 'HEIC photos are not supported for secure upload. Please choose a JPG, PNG or WebP file, or convert the photo first.';
     if(!/^image\/(jpeg|png|webp)$|^video\/(mp4|quicktime|webm)$/.test(f.type||''))return 'Choose JPG, PNG, WebP photos or MP4, MOV, WebM videos.';
     if(f.size===0)return 'One of the selected files is empty. Please choose another file.';
     if(f.size>LIMITS.perFile)return 'Each file must be 15 MB or smaller. Please shorten or compress the video.';
@@ -34,9 +36,16 @@ export function fileError(existing,added) {
   if(total>LIMITS.total)return 'Please keep the combined file size below 30 MB.';
   return '';
 }
-export function requestText(d,files=[]) {
-  const line=(s)=>String(s||'').replace(/[\r\n]+/g,' ').trim();
-  const formatted=new Intl.DateTimeFormat('en-US',{weekday:'short',month:'short',day:'numeric',year:'numeric',timeZone:'UTC'}).format(new Date(d.date+'T12:00:00Z'));
-  return `Hi Josh! I’d like to request service.\n\nName: ${line(d.name)}\nPhone: ${line(d.phone)}${d.email?'\nEmail: '+line(d.email):''}\nVehicle: ${line(d.year)} ${line(d.make)} ${line(d.model)}\nVIN: ${line(d.vin).toUpperCase()}\nService: ${SERVICES[d.service]}\nCity / ZIP: ${line(d.city)}\nService street address: ${line(d.address)}\nLocation: ${line(d.locationType)}\nPreferred date: ${formatted}\nPreferred time: ${line(d.time)} (Eastern Time)\n\nWhat I need:\n${String(d.description).trim()}\n\n${files.length?`I have ${files.length} photo/video file(s) to share with this request.\n\n`:''}Texting is my preferred way to coordinate. Please confirm availability and an estimate before booking.\nSent from joshmobileinc.com`;
+export function normalizePhone(value) {
+  const digits=String(value||'').replace(/\D/g,'');
+  if(digits.length===10)return '+1'+digits;
+  if(digits.length===11&&digits.startsWith('1'))return '+'+digits;
+  return '+'+digits;
 }
-export function deliveryLinks(text) { const body=encodeURIComponent(text);return {whatsapp:`https://wa.me/16467967322?text=${body}`,sms:`sms:+16467967322?body=${body}`,email:`mailto:joshmobileinc@gmail.com?subject=${encodeURIComponent('Josh Mobile — service request')}&body=${body}`}; }
+export function receiptMessage(reference) {
+  return `Hi Josh, I submitted request ${reference} on your website. Please review my car details and text me to confirm a time. Thanks!`;
+}
+export function deliveryLinks(reference) {
+  const body=encodeURIComponent(receiptMessage(reference));
+  return {whatsapp:`https://wa.me/16467967322?text=${body}`,smsAndroid:`sms:+16467967322?body=${body}`,smsIOS:`sms:+16467967322&body=${body}`};
+}

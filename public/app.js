@@ -1,12 +1,20 @@
 (async function(){
 'use strict';
-const {easternToday,validateRequest,fileError,requestText,deliveryLinks}=await import('/request.mjs');
+const {easternToday,validateRequest,fileError,receiptMessage,deliveryLinks}=await import('/request.mjs');
 const $=id=>document.getElementById(id);
 const menu=$('menu-toggle'),mobile=$('mobile-menu');
 menu.addEventListener('click',()=>{const open=menu.getAttribute('aria-expanded')!=='true';menu.setAttribute('aria-expanded',String(open));menu.setAttribute('aria-label',open?'Close menu':'Open menu');mobile.hidden=!open;});
 mobile.querySelectorAll('a').forEach(a=>a.addEventListener('click',()=>{mobile.hidden=true;menu.setAttribute('aria-expanded','false');menu.setAttribute('aria-label','Open menu');}));
-const form=$('booking-form'),review=$('request-review');let files=[],objectUrls=[],prepared='',preparedData=null,requestId=null,onlineConnected=false,fileSignature='',savedRequest=null;
-fetch('/api/workspace',{cache:'no-store'}).then(r=>r.ok?r.json():null).then(c=>{onlineConnected=c?.connected===true;if(preparedData&&requestId)$('submit-online').hidden=!onlineConnected;}).catch(()=>{});
+const form=$('booking-form'),review=$('request-review');
+const continuityKey='jm-intake-continuity-v1';
+let files=[],objectUrls=[],preparedData=null,requestId='',continuationProof='',onlineConnected=null,fileSignature='',savedRequest=null,received=new Set();
+const track=(event,detail={})=>{const payload={event,...detail};document.dispatchEvent(new CustomEvent('joshmobile:event',{detail:payload}));if(Array.isArray(window.dataLayer))window.dataLayer.push(payload);};
+const random=()=>crypto.getRandomValues(new Uint8Array(32)).reduce((s,b)=>s+String.fromCharCode(b),'');
+const makeProof=()=>btoa(random()).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+const getContinuity=()=>{try{return JSON.parse(sessionStorage.getItem(continuityKey)||'null');}catch{return null;}};
+const saveContinuity=reference=>{try{sessionStorage.setItem(continuityKey,JSON.stringify({requestId,continuationProof,reference}));}catch{}};
+const previous=getContinuity();if(previous?.requestId&&previous?.continuationProof){requestId=previous.requestId;continuationProof=previous.continuationProof;$('resume-note').hidden=false;}
+fetch('/api/workspace',{cache:'no-store'}).then(r=>r.ok?r.json():null).then(c=>{onlineConnected=c?.connected===true;}).catch(()=>{});
 $('preferred-date').min=easternToday();form.elements.year.max=Number(easternToday().slice(0,4))+2;
 const timeSelect=$('preferred-time'),availabilityNote=$('availability-note');
 let slots=null,availabilitySequence=0;
@@ -23,18 +31,64 @@ async function loadSlots(){
  else {timeSelect.replaceChildren(new Option('Choose a preferred window',''),...['Morning','Afternoon','Flexible'].map(v=>new Option(v,v)));availabilityNote.textContent='Preferred windows only; Josh confirms the appointment.';}
  if([...timeSelect.options].some(o=>o.value===previous))timeSelect.value=previous;
  timeSelect.disabled=false;
- }catch{if(seq!==availabilitySequence)return;timeSelect.replaceChildren(new Option('Hours unavailable — call or text Josh',''));availabilityNote.textContent='Could not load available times. Please call or text Josh.';}
+ }catch{if(seq!==availabilitySequence)return;timeSelect.replaceChildren(new Option('Hours unavailable — try again later',''));availabilityNote.textContent='Could not load available times. Please choose another date or try again later.';}
 }
 $('preferred-date').addEventListener('change',loadSlots);
 document.querySelectorAll('[data-service]').forEach(link=>link.addEventListener('click',()=>{form.hidden=false;review.hidden=true;$('service').value=link.dataset.service;}));
 const showError=(id,msg)=>{const el=$(id);el.textContent=msg;el.hidden=!msg;};
-function renderFiles(){objectUrls.forEach(u=>URL.revokeObjectURL(u));objectUrls=[];$('file-previews').replaceChildren();files.forEach((file,i)=>{const card=document.createElement('div');card.className='file-preview';const remove=document.createElement('button');remove.type='button';remove.className='remove-file';remove.textContent='×';remove.setAttribute('aria-label','Remove '+file.name);remove.addEventListener('click',()=>{files.splice(i,1);renderFiles();showError('media-error','');});if(/^image\/(jpeg|png|webp)$/.test(file.type)){const img=document.createElement('img'),url=URL.createObjectURL(file);objectUrls.push(url);img.src=url;img.alt='Selected photo: '+file.name;card.append(img);}else{const badge=document.createElement('span');badge.className='file-type';badge.textContent=file.type.startsWith('video/')?'▷ VIDEO':'PHOTO';card.append(badge);}const caption=document.createElement('p');caption.textContent=file.name+' · '+(file.size/1024/1024).toFixed(1)+' MB';card.append(remove,caption);$('file-previews').append(card);});$('media-hint').textContent=files.length?`${files.length} file(s) selected on your device. Review your request next. Nothing has been uploaded.`:'Your files stay on your device until you submit online or deliberately share them. No background uploads.';}
+function renderFiles(){objectUrls.forEach(u=>URL.revokeObjectURL(u));objectUrls=[];$('file-previews').replaceChildren();files.forEach((file,i)=>{const card=document.createElement('div');card.className='file-preview';const remove=document.createElement('button');remove.type='button';remove.className='remove-file';remove.textContent='×';remove.setAttribute('aria-label','Remove '+file.name);remove.addEventListener('click',()=>{files.splice(i,1);renderFiles();showError('media-error','');});if(/^image\/(jpeg|png|webp)$/.test(file.type)){const img=document.createElement('img'),url=URL.createObjectURL(file);objectUrls.push(url);img.src=url;img.alt='Selected photo: '+file.name;card.append(img);}else{const badge=document.createElement('span');badge.className='file-type';badge.textContent=file.type.startsWith('video/')?'▷ VIDEO':'PHOTO';card.append(badge);}const caption=document.createElement('p');caption.textContent=file.name+' · '+(file.size/1024/1024).toFixed(1)+' MB';card.append(remove,caption);$('file-previews').append(card);});$('media-hint').textContent=files.length?`${files.length} file(s) selected on your device. Nothing has been uploaded yet.`:'Your files stay on your device until you submit your saved service request. No background uploads.';}
 for(const id of ['media-picker','photo-capture','video-capture'])$(id).addEventListener('change',e=>{const additions=Array.from(e.target.files||[]),err=fileError(files,additions);if(err)showError('media-error',err);else{files.push(...additions);renderFiles();showError('media-error','');}e.target.value='';});
-form.addEventListener('submit',e=>{e.preventDefault();const d=Object.fromEntries(new FormData(form));d.consent=!!d.consent;d.vin=String(d.vin||'').toUpperCase().replace(/\s/g,'');const err=validateRequest(d)||(Array.isArray(slots)&&!slots.includes(d.time)?'Please choose an available time.':'');showError('form-error',err);if(err)return;const nextFiles=JSON.stringify(files.map(f=>[f.name,f.type,f.size,f.lastModified]));if(JSON.stringify(preparedData)!==JSON.stringify(d)||nextFiles!==fileSignature){fileSignature=nextFiles;requestId=crypto.randomUUID?.()||null;savedRequest=null;$('submit-online').disabled=false;$('submit-online').textContent='Send request securely';}preparedData=d;prepared=requestText(d,files);$('submit-online').hidden=!onlineConnected||!requestId;$('request-summary').textContent=prepared;const links=deliveryLinks(prepared);$('send-whatsapp').href=links.whatsapp;$('send-email').href=links.email;const ios=/iPhone|iPad|iPod/.test(navigator.userAgent);$('send-sms').href=ios?links.sms.replace('?body=','&body='):links.sms;let canShare=false;try{canShare=files.length>0&&!!navigator.canShare&&navigator.canShare({files});}catch{}$('share-files').hidden=!canShare;$('review-attachment-note').textContent=files.length?(canShare?`${files.length} file(s) are ready. Send securely to upload to Josh’s private inbox, or share through your messaging app.`:`${files.length} file(s) are selected. Send securely to upload them. Text/email links alone will not attach them.`):'No files selected. Your vehicle, work, location and preferred date are included.';$('share-status').textContent='';form.hidden=true;review.hidden=false;review.focus({preventScroll:true});review.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth',block:'start'});});
-$('submit-online').addEventListener('click',async()=>{const button=$('submit-online');if(!onlineConnected||!preparedData||!requestId)return;button.disabled=true;try{if(!savedRequest||savedRequest.id!==requestId){$('share-status').textContent='Saving your request securely…';const r=await fetch('/api/booking',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({requestId,website:preparedData.website||'',details:preparedData,attachments:files.map(f=>({name:f.name,type:f.type,size:f.size}))})}),result=await r.json();if(!r.ok||!result.ok)throw new Error(result.error||'Unable to save request.');savedRequest=result;}if(files.length&&savedRequest.uploadToken){const {sendAttachments}=await import('/upload.js');await sendAttachments(savedRequest.id,savedRequest.uploadToken,files,(i,total)=>{$('share-status').textContent=`Request saved. Uploading attachment ${i+1} of ${total}…`;});}$('share-status').textContent='Request saved securely. Reference: '+savedRequest.id+'. '+(files.length?(savedRequest.uploadToken?'Your attachments have been uploaded. ':'Please text Josh any attachments; this retry could not verify them. '):'')+'Josh will confirm your appointment by text. You can text him below for faster coordination.';button.textContent='Request received — awaiting confirmation';}catch(err){$('share-status').textContent=(savedRequest?'Your request is saved, but attachments may be incomplete. ':'')+String(err.message||'Please text Josh for help.');button.disabled=false;button.textContent=savedRequest?'Retry remaining uploads':'Send request securely';}});
-$('edit-request').addEventListener('click',()=>{review.hidden=true;form.hidden=false;$('service').focus();});
-$('copy-request').addEventListener('click',async()=>{try{await navigator.clipboard.writeText(prepared);$('share-status').textContent='Request copied. Paste it into your conversation with Josh.';}catch{$('share-status').textContent='Automatic copying is unavailable. Select and copy the request text above.';}});
-$('download-request').addEventListener('click',()=>{const u=URL.createObjectURL(new Blob([prepared],{type:'text/plain'})),a=document.createElement('a');a.href=u;a.download='josh-mobile-service-request.txt';a.click();setTimeout(()=>URL.revokeObjectURL(u),5000);$('share-status').textContent='Request saved to your device. It has not been sent to Josh.';});
-$('share-files').addEventListener('click',async()=>{try{if(!navigator.share||!navigator.canShare?.({files}))throw new Error('unsupported');await navigator.share({files,title:'Josh Mobile service request',text:prepared});$('share-status').textContent='Sharing completed in your chosen app. Please check that you sent the files to Josh; this website cannot verify delivery.';}catch(err){$('share-status').textContent=err.name==='AbortError'?'Sharing cancelled. Nothing was confirmed as sent.':'Sharing did not complete. Open WhatsApp, text, or email and attach the files there.';}});
+const receipt=()=>savedRequest?receiptMessage(savedRequest.reference):'';
+function showReceipt(){
+ if(!savedRequest)return;
+ const links=deliveryLinks(savedRequest.reference),ios=/iPhone|iPad|iPod/.test(navigator.userAgent);
+ $('review-title').textContent='Request received — reference '+savedRequest.reference;
+ $('receipt-message').textContent='Your appointment is not confirmed yet. Josh will review your request and contact you.';
+ $('request-reference').textContent=savedRequest.reference;
+ $('request-summary').textContent=receipt();
+ $('send-sms').href=ios?links.smsIOS:links.smsAndroid;$('send-whatsapp').href=links.whatsapp;
+ const expected=savedRequest.attachmentStatus?.expected??files.length,done=received.size,failed=savedRequest.attachmentStatus?.failed?.length||0;
+ $('review-attachment-note').textContent=expected===0?'No photos selected.':failed?`${done} of ${expected} attachments received. ${failed} need${failed===1?'s':''} another attempt.`:`${done} of ${expected} attachments received.`;
+ $('retry-uploads').hidden=done>=expected;
+ $('edit-request').hidden=true;
+ form.hidden=true;review.hidden=false;review.focus({preventScroll:true});review.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth',block:'start'});
+}
+async function saveRequest({renew=false}={}){
+ if(onlineConnected===false)throw new Error('Online service requests are temporarily unavailable. Please try again later.');
+ if(!requestId)requestId=crypto.randomUUID?.()||'';if(!requestId)throw new Error('Your browser could not create a secure request key. Please update your browser and try again.');
+ if(!continuationProof)continuationProof=makeProof();
+ $('submit-request').disabled=true;$('share-status').textContent=renew?'Refreshing secure upload access…':'Saving your service request…';
+ try{
+  const response=await fetch('/api/booking',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({requestId,continuationProof,website:preparedData.website||'',details:preparedData,attachments:files.map(f=>({name:f.name,type:f.type,size:f.size}))}),cache:'no-store'});
+  const result=await response.json().catch(()=>({}));if(!response.ok||!result.ok)throw new Error(result.error||'Unable to save your request.');
+  savedRequest=result;received=new Set(result.receivedIndices||[]);saveContinuity(result.reference);showReceipt();
+  if(!result.duplicate)track('request_saved',{reference:result.reference});track('message_prepared',{reference:result.reference});
+  if(files.length&&received.size<files.length)await uploadSelected();
+ }finally{$('submit-request').disabled=false;}
+}
+async function uploadSelected(){
+ if(!savedRequest)return;
+ if(!files.length){$('retry-uploads').hidden=true;return;}
+ const pending=files.map((file,index)=>({file,index})).filter(item=>!received.has(item.index));
+ if(!pending.length){showReceipt();return;}
+ if(!savedRequest.uploadToken){await saveRequest({renew:true});return;}
+ $('retry-uploads').disabled=true;$('share-status').textContent=`Request saved. Uploading ${pending.length} attachment${pending.length===1?'':'s'}…`;
+ try{
+  const {sendAttachments}=await import('/upload.js');
+  const outcome=await sendAttachments(savedRequest.id,savedRequest.uploadToken,pending,progress=>{$('share-status').textContent=progress.phase==='failed'?`Request saved. ${progress.name} did not upload: ${progress.reason}`:`Request saved. ${progress.phase==='verifying'?'Verifying':'Uploading'} attachment ${progress.index+1} of ${files.length}${progress.percentage?` (${progress.percentage}%)`:''}…`;});
+  outcome.received.forEach(index=>received.add(index));
+  savedRequest.attachmentStatus={expected:files.length,received:received.size,failed:outcome.failed};
+  $('share-status').textContent=outcome.failed.length?`Request saved. ${received.size} of ${files.length} attachments received; retry the remaining file${outcome.failed.length===1?'':'s'} when ready.`:`Request saved. All ${files.length} attachment${files.length===1?'':'s'} received.`;
+ }catch(error){$('share-status').textContent='Your request is saved, but attachments need another attempt. '+String(error.message||'');}
+ finally{$('retry-uploads').disabled=false;showReceipt();}
+}
+form.addEventListener('submit',async event=>{event.preventDefault();const details=Object.fromEntries(new FormData(form));details.consent=!!details.consent;details.vin=String(details.vin||'').toUpperCase().replace(/\s/g,'');const error=validateRequest(details)||(Array.isArray(slots)&&!slots.includes(details.time)?'Please choose an available time.':'');showError('form-error',error);if(error)return;const nextFiles=JSON.stringify(files.map(file=>[file.name,file.type,file.size,file.lastModified]));if(preparedData&&(JSON.stringify(preparedData)!==JSON.stringify(details)||fileSignature!==nextFiles)){requestId='';continuationProof='';savedRequest=null;received.clear();try{sessionStorage.removeItem(continuityKey);}catch{}}preparedData=details;fileSignature=nextFiles;try{await saveRequest();}catch(err){showError('form-error',String(err.message||'Please retry your request.'));}});
+$('retry-uploads').addEventListener('click',async()=>{if(!savedRequest)return;if(!files.length){$('share-status').textContent='Your request is already saved. After a reload, choose the original files again to retry incomplete attachments.';return;}try{await saveRequest({renew:true});}catch(error){$('share-status').textContent='Your request is saved. '+String(error.message||'Unable to renew uploads.');}});
+$('edit-request').addEventListener('click',()=>{if(savedRequest)return;review.hidden=true;form.hidden=false;$('service').focus();});
+$('copy-message').addEventListener('click',async()=>{try{await navigator.clipboard.writeText(receipt());$('share-status').textContent='Message copied. Your request is already saved.';track('message_copied',{reference:savedRequest?.reference||''});}catch{$('share-status').textContent='Automatic copying is unavailable. Select and copy the message above.';}});
+$('copy-phone').addEventListener('click',async()=>{try{await navigator.clipboard.writeText('(646) 796-7322');$('share-status').textContent='Phone number copied. Your request is already saved.';}catch{$('share-status').textContent='Copy (646) 796-7322 into your messaging app. Your request is already saved.';}});
+$('send-sms').addEventListener('click',()=>track('sms_link_opened',{reference:savedRequest?.reference||''}));
+$('send-whatsapp').addEventListener('click',()=>track('whatsapp_link_opened',{reference:savedRequest?.reference||''}));
+$('done-request').addEventListener('click',()=>{$('share-status').textContent='Done. Your request is already saved. Josh will contact you after review.';});
 window.addEventListener('pagehide',()=>objectUrls.forEach(u=>URL.revokeObjectURL(u)));
 })();

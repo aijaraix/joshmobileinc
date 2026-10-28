@@ -1,7 +1,7 @@
-import test from 'node:test';import assert from 'node:assert/strict';import {SERVICES,LIMITS,easternToday,validateRequest,fileError,requestText,deliveryLinks} from '../lib/request.mjs';
-const valid={vin:'1HGCM82633A004352',address:'123 Example Street',service:'brakes',year:'2018',make:'Honda',model:'Accord',description:'Brake noise while slowing down.',date:'2026-10-27',time:'Morning',city:'Northern Broward',locationType:'Come to my location',name:'Test Customer',phone:'202-555-0142',email:'test@example.com',consent:true};
+import test from 'node:test';import assert from 'node:assert/strict';import {SERVICES,LIMITS,easternToday,validateRequest,fileError,receiptMessage,deliveryLinks,normalizePhone} from '../lib/request.mjs';
+const valid={vin:'1HGCM82633A004352',address:'123 Example Street',service:'brakes',year:'2018',make:'Honda',model:'Accord',description:'Brake noise while slowing down.',date:'2026-10-27',time:'Morning',city:'Northern Broward',locationType:'Come to my location',name:'Test Customer',phone:'202-555-0142',email:'test@example.com',preferredContact:'text',consent:true};
 const v=(d)=>validateRequest({...valid,...d},'2026-10-25');
-test('six specific services plus uncertain option',()=>assert.equal(Object.keys(SERVICES).length,7));
+test('six specific services',()=>assert.equal(Object.keys(SERVICES).length,6));
 test('valid request accepted',()=>assert.equal(v({}),''));
 for(const [name,d] of Object.entries({missingService:{service:''},unknownService:{service:'engine-rebuild'},badYear:{year:'999'},missingName:{name:''},missingCity:{city:''},shortDescription:{description:'bad'},pastDate:{date:'2026-10-24'},impossibleDate:{date:'2026-13-30'},overflowDate:{date:'2026-11-31'},missingDate:{date:''},missingTime:{time:''},badPhone:{phone:'123'},badEmail:{email:'nope'},noConsent:{consent:false},badLocation:{locationType:'walk in'}}))test('reject '+name,()=>assert.notEqual(v(d),''));
 test('today allowed as request, not confirmed availability',()=>assert.equal(v({date:'2026-10-25'}),''));
@@ -19,7 +19,7 @@ test('SVG rejected',()=>assert.notEqual(fileError([],[{...photo,type:'image/svg+
 test('HTML rejected',()=>assert.notEqual(fileError([],[{...photo,type:'text/html'}]),''));
 test('file limit enforced',()=>assert.notEqual(fileError([],[{...photo,size:LIMITS.perFile+1}]),''));
 test('total limit enforced',()=>assert.notEqual(fileError([],Array(3).fill({...photo,size:12*1024*1024})),''));
-test('body includes vehicle, date, description and request semantics',()=>{const s=requestText(valid,[photo]);for(const v of ['2018 Honda Accord','Brake pads & rotors','Oct 27','Brake noise','Please confirm','1 photo/video'])assert(s.includes(v));});
-test('links target Josh, not current user',()=>{const links=deliveryLinks(requestText(valid));assert.equal(new URL(links.whatsapp).pathname,'/16467967322');assert(links.sms.startsWith('sms:+16467967322'));assert(links.email.startsWith('mailto:joshmobileinc@gmail.com'));});
-test('URL body encoded losslessly',()=>{const s='Hello & # + ? <script>';assert.equal(new URL(deliveryLinks(s).whatsapp).searchParams.get('text'),s);});
-test('names cannot inject extra summary lines',()=>{assert(!requestText({...valid,name:'Name\nCONFIRMED'}).includes('Name\nCONFIRMED'));});
+test('receipt message contains only the reference, not private request data',()=>{const s=receiptMessage('JM-K7P4D2Q9');assert.equal(s,'Hi Josh, I submitted request JM-K7P4D2Q9 on your website. Please review my car details and text me to confirm a time. Thanks!');for(const value of [valid.vin,valid.address,valid.description])assert(!s.includes(value));});
+test('links target Josh, not current user',()=>{const links=deliveryLinks('JM-K7P4D2Q9');assert.equal(new URL(links.whatsapp).pathname,'/16467967322');assert(links.smsAndroid.startsWith('sms:+16467967322?body='));assert(links.smsIOS.startsWith('sms:+16467967322&body='));});
+test('URL body encodes the short receipt message losslessly',()=>assert.equal(new URL(deliveryLinks('JM-K7P4D2Q9').whatsapp).searchParams.get('text'),receiptMessage('JM-K7P4D2Q9')));
+test('phone is stored in a normalized form',()=>{assert.equal(normalizePhone('(202) 555-0142'),'+12025550142');assert.equal(normalizePhone('+44 20 7946 0958'),'+442079460958');});
