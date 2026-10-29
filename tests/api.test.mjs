@@ -1,6 +1,6 @@
 import test from 'node:test';import assert from 'node:assert/strict';
 import {memoryStore} from './memory-store.mjs';import {useTestStore,rate} from '../lib/private-store.mjs';import {scenario} from './scenario.mjs';import {validVin,passwordHash,verifyPassword,sign,unsign,same} from '../lib/auth.mjs';import {magicOK} from '../lib/media.mjs';
-process.env.NODE_ENV='test';useTestStore(memoryStore());
+process.env.NODE_ENV='test';delete process.env.TELEGRAM_ALERTS_ENABLED;delete process.env.JM_ALERT_WEBHOOK_URL;delete process.env.JM_ALERT_WEBHOOK_SECRET;useTestStore(memoryStore());
 test('Complete private booking and account lifecycle',async()=>{const checks=await scenario();console.log('Verified workflow checks:',checks.length);assert(checks.length>=25);});
 test('VIN validity is enforced',()=>{assert(validVin('1HGCM82633A004352'));for(const bad of ['','123','IHGCM82633A004352','OHGCM82633A004352','QHGCM82633A004352'])assert(!validVin(bad));});
 test('Strong password storage and incorrect passwords',async()=>{const p='a-long-unique-test-password',h=await passwordHash(p);assert(h.startsWith('scrypt17$'));assert(!h.includes(p));assert(await verifyPassword(p,h));assert(!await verifyPassword('not-the-right-password',h));assert(!await verifyPassword('short',h));});

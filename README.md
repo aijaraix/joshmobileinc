@@ -33,3 +33,7 @@ Node 24: `npm ci`, `npm test`, `npm run build`. The current suite has 47 Node ch
 Production-only configuration: `BLOB_READ_WRITE_TOKEN`, `JM_SESSION_SECRET`, `JM_OWNER_INVITE_HASH`, `JM_MANAGER_INVITE_HASH`, `JM_INVITE_EXPIRES`, `JM_BOOKING_ENABLED=true`, and—only after owner authorization—`JM_ALERT_WEBHOOK_URL` plus `JM_ALERT_WEBHOOK_SECRET`. Never commit raw invitations, passwords, cookies, environment files, customer records, webhook URLs, or alert secrets.
 
 Monitor existing Vercel Blob/function usage; included usage is finite and overages may apply. No new VPS, database, phone number, paid messaging plan, or subscription is required by this code.
+
+## Optional Telegram owner alerts
+
+`TELEGRAM_ALERTS_ENABLED` defaults off and only `true` enables delivery. `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` must be configured privately in the deployment environment; never commit their values. The owner can send a customer-data-free test from the dashboard. Delivery state is recorded per request; alerts are best effort and do not affect request saving.

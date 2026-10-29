@@ -1,3 +1,5 @@
+import {waitUntil} from '@vercel/functions';
+import {initialTelegram,notifyTelegram} from '../lib/telegram.mjs';
 import {randomBytes} from 'node:crypto';
 import {validateRequest,normalizePhone} from '../lib/request.mjs';
 import {guard,body,assert,fail,SECRET,digest,text,same} from '../lib/auth.mjs';
@@ -25,8 +27,11 @@ export default async function handler(req,res){try{
  }
  await rate('intake-ip:'+clientIp(req),10,3600000);await rate('intake-phone:'+String(d.phone).replace(/\D/g,''),5,86400000);await rate('intake-global',150,86400000);
  const token=randomBytes(32).toString('base64url'),stamp=new Date().toISOString(),reference=await reserveReference(b.requestId);
- const j={id:b.requestId,reference,createdAt:stamp,updatedAt:stamp,version:1,source:'website',status:'requested',name:text(d.name,90),phone:text(d.phone,30),normalizedPhone:normalizePhone(d.phone),email:text(d.email,160),preferredContact:d.preferredContact,year:String(d.year),make:text(d.make,60),model:text(d.model,80),vin:text(d.vin,17).toUpperCase(),service:text(d.service,100),description:text(d.description,1800),address:text(d.address,240),city:text(d.city,100),locationType:d.locationType,date:d.date,time:d.time,appointmentAt:'',durationMinutes:60,privateNotes:'',partsTools:'',media:[],timeline:[{id:b.requestId,at:stamp,by:'Customer',kind:'created',text:'Website service request received. Awaiting staff confirmation.'}],attachments:attachments.map((f,index)=>({index,type:f.type,size:f.size,name:text(f.name,100),status:'pending'})),attachmentStatus:{expected:attachments.length,received:0,failed:[]},intakeHash,continuationHash:digest(b.continuationProof),uploadHash:attachments.length?digest(token):'',uploadUntil:attachments.length?Date.now()+30*60*1000:0,notification:initialNotification(b.requestId)};
+ const j={id:b.requestId,reference,createdAt:stamp,updatedAt:stamp,version:1,source:'website',status:'requested',name:text(d.name,90),phone:text(d.phone,30),normalizedPhone:normalizePhone(d.phone),email:text(d.email,160),preferredContact:d.preferredContact,year:String(d.year),make:text(d.make,60),model:text(d.model,80),vin:text(d.vin,17).toUpperCase(),service:text(d.service,100),description:text(d.description,1800),address:text(d.address,240),city:text(d.city,100),locationType:d.locationType,date:d.date,time:d.time,appointmentAt:'',durationMinutes:60,privateNotes:'',partsTools:'',media:[],timeline:[{id:b.requestId,at:stamp,by:'Customer',kind:'created',text:'Website service request received. Awaiting staff confirmation.'}],attachments:attachments.map((f,index)=>({index,type:f.type,size:f.size,name:text(f.name,100),status:'pending'})),attachmentStatus:{expected:attachments.length,received:0,failed:[]},intakeHash,continuationHash:digest(b.continuationProof),uploadHash:attachments.length?digest(token):'',uploadUntil:attachments.length?Date.now()+30*60*1000:0,notification:initialNotification(b.requestId),telegram:initialTelegram()};
  try{await withScheduleLock(async()=>{await enforcePublicSlot(d.date,d.time);await writeJson(jobPath(j.id),j);});}catch(error){await releaseReference(reference,j.id).catch(()=>{});throw error;}
- await touchJobs('created');const notification=await notifyNewRequest(j.id).catch(()=>({state:'failed',attempted:true}));
- return res.status(201).json({ok:true,id:j.id,reference:j.reference,confirmed:false,uploadToken:attachments.length?token:'',attachmentStatus:j.attachmentStatus,receivedIndices:[],notificationState:notification.state});
+ await touchJobs('created');
+ const response=res.status(201).json({ok:true,id:j.id,reference:j.reference,confirmed:false,uploadToken:attachments.length?token:'',attachmentStatus:j.attachmentStatus,receivedIndices:[],notificationState:j.notification.state});
+ const work=Promise.allSettled([notifyNewRequest(j.id),notifyTelegram(j).catch(()=>{console.error('telegram_alert_failed',j.reference,0);})]);
+ try{waitUntil(work);}catch{ /* The response is already committed. */ }
+ return response;
 }catch(e){return fail(res,e);}}

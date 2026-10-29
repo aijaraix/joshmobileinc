@@ -25,3 +25,7 @@ After an approved deployment, use an ordinary browser with normal security setti
 ## Boundaries
 
 Do not invent hours, prices, reviews, credentials, a public shop address, delivery confirmation, or WhatsApp operation. Confirm that Josh actually uses WhatsApp on `(646) 796-7322` before presenting it as an operational channel. ICS is a one-way calendar export with device alarms, not calendar synchronization. Preserve the photographic social card, public canonical domain, private API no-store/noindex responses, and existing Vercel usage limits; no DNS changes are needed.
+
+## Optional Telegram owner alerts
+
+`TELEGRAM_ALERTS_ENABLED` defaults off and only `true` enables delivery. `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` must be configured privately in the deployment environment; never commit their values. The owner can send a customer-data-free test from the dashboard. Delivery state is recorded per request; alerts are best effort and do not affect request saving.
