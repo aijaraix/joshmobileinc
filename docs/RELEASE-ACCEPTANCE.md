@@ -1,22 +1,27 @@
 # Saved-request release acceptance
 
-## Current production state — October 29, 2026
+## Production release — October 29, 2026
 
-PR #2 merged as `d294c23f39f8341b0af734bb02a6dad84b35063b` and is serving in Vercel deployment `dpl_DfQaz7Uf67NDDh4NPgef5HFBvUiN` (READY). A normal-browser review found that the public form did not include the requested “Not sure / something else” option, although all six named service categories were present. The narrow correction is on branch `fix/unknown-service-option-production-acceptance`; it adds the fallback to the form and shared client/server validation and adds regression checks. Production acceptance remains **PENDING** until the correction passes CI and is deployed, and the live request/authorized staff readback below are completed.
+- Original PR #2 merged as `d294c23f39f8341b0af734bb02a6dad84b35063b`.
+- Production correction PR #3 restored “Not sure / something else”; merge commit: `92db981d16e65e125b3d91339159841ca49a390d`.
+- Vercel production deployment: `dpl_E5w6pCeWso4X4R8kAgM5mFTLhugw`, READY for that exact SHA.
+- The canonical production domain returned the updated blue-and-white photo site and showed all six named services plus the fallback. `www.joshmobileinc.com` redirected to `https://joshmobileinc.com/`. Social metadata, photographs, Instagram link, North Broward branding, and the exact Blob upload CSP source are present in the deployed source/config.
+- `/owner` displays the private staff sign-in page. Unauthenticated `/api/admin` job-list and file requests returned “Sign in to view this private workspace.” No customer record was returned.
+- The deployed build ran `npm test`, `npm run build`, and the private-storage acceptance scenario. Build logs show 44 passing TAP entries (including the added fallback coverage) and 37 passing private-storage workflow checks. No test failures. The successful Vercel build is not proof of a real browser Blob upload or authenticated staff retrieval.
+- Runtime review found no application exception group. Vercel reported two Node `DEP0169` `url.parse()` deprecation warnings on `/api/admin` and `/api/availability`; this is recorded for follow-up.
 
-## Candidate checks completed locally
+## Live acceptance status: PENDING
 
-- PR #2 reported `npm test`: 47 passing Node checks, including a 37-check private intake/staff lifecycle.
-- PR #2 reported `npm run build`: passed asset, service, social metadata, JSON-LD, direct-hosting, and browser-bundle checks.
-- Those checks apply to the merged PR #2 head, not the corrective branch. Exact-head correction CI is pending.
-- The browser harness is not evidence of real Blob storage or production headers.
+No production QA request was submitted and no test record was created. The ordinary browser form was prepared with synthetic information, but the available browser-control interface could not open/select local files through the site's normal file chooser. The browser interface reported that the file control had no settable value; no browser-security or API bypass was attempted. Without an authenticated authorized staff session, the staff readback and cleanup could not be completed either.
 
-## Required production proof
+Therefore there is no live request reference, no uploaded attachments, no staff note/parts entry, no confirmed/canceled QA appointment, and no real-device SMS/WhatsApp verification to report. Josh's personal login was not verified. The temporary test files were not transmitted. Production remains on the READY release above; it was not rolled back.
 
-1. Verify the production CSP contains `https://vercel.com/api/blob/` in `connect-src` and submit a synthetic request through an ordinary browser with two genuine images and a short valid video—no mocked APIs or altered browser security.
-2. Confirm exactly one saved reference appears in the customer receipt, persisted private job, authenticated staff search, and optional short message. Close messaging without sending and confirm the job remains.
-3. With an already-authorized staff account, open the same production job, inspect private media and attachment status, save a note and parts-preparation entry, reload, sign out/in, and retrieve it again. Mark this **UNVERIFIED** until an authorized account completes it.
-4. Test future appointment confirmation, overlap rejection, cancellation, working hours/blocked dates, calendar export behavior, and public denial of private job/media endpoints.
-5. Keep automatic owner-email alerts **NOT ACTIVE** unless Josh authorizes the connection and an actual authorized inbox receipt is proven.
+## Remaining proof required
 
-SMS and WhatsApp open the customer's ordinary app only after saving. The website does not send, deliver, read, or synchronize those messages. WhatsApp should be described as operational only after Josh confirms that his business number supports it. Automatic SMS, WhatsApp API use, payment, and automatic reminders remain excluded.
+1. In a normal browser that supports the visible operating-system file chooser, submit one clearly labeled synthetic request with two JPEGs and a small valid MP4. Confirm the one returned `JM-XXXXXXXX` reference and successful status for all three uploads. Do not contact or dispatch anyone.
+2. Using an already-authorized staff or owner-assisted account, find that same reference, inspect all customer, vehicle, address, service, schedule, and private media fields, save a private note and parts entry, and verify persistence after reload and a legitimate sign-out/sign-in.
+3. Confirm appointment overlap protection, then cancel the QA appointment while preserving existing bookings.
+4. Test optional SMS/WhatsApp links on supported devices without sending the message. WhatsApp remains unverified as an operational business channel until Josh confirms support on the number.
+5. Keep automatic owner-email alerts disabled. Do not enable paid messaging, change credentials, or invent working hours.
+
+The automated suite covers request validation, idempotent retry, short reference generation, private persistence and media, upload-failure state, authentication, appointment conflicts, working-hours and blocked-date rules, cancellation/calendar behavior, password/session security, and SMS/WhatsApp message formatting. The production browser flow, real Blob transfer, dashboard note persistence, and device link opening remain unverified as stated above.
