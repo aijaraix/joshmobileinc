@@ -1,6 +1,6 @@
 import test from 'node:test';import assert from 'node:assert/strict';import {randomBytes,randomUUID} from 'node:crypto';
 import {memoryStore} from './memory-store.mjs';import {useTestStore,jobById,writeJson,accountPath} from '../lib/private-store.mjs';import {digest,sign} from '../lib/auth.mjs';import {notifyTelegram,telegramMessage,sendTelegramTest} from '../lib/telegram.mjs';import booking from '../api/booking.mjs';import admin from '../api/admin.mjs';import {call} from './scenario.mjs';
-process.env.NODE_ENV='test';process.env.JM_SESSION_SECRET='test-secret-'.repeat(6);process.env.JM_BOOKING_ENABLED='true';
+process.env.NODE_ENV='test';delete process.env.JM_ALERT_WEBHOOK_URL;delete process.env.JM_ALERT_WEBHOOK_SECRET;process.env.JM_SESSION_SECRET='test-secret-'.repeat(6);process.env.JM_BOOKING_ENABLED='true';
 const initialFetch=globalThis.fetch;const tasks=[];globalThis[Symbol.for('@vercel/request-context')]={get:()=>({waitUntil:p=>tasks.push(p)})};
 const data=()=>({service:'brakes',year:'2018',make:'Honda',model:'Accord',vin:'1HGCM82633A004352',description:'Test <inspection> & brakes',name:'A <B> & "C"',phone:'202-555-0142',address:'1 Main & Pine',city:'Miami',date:new Date(Date.now()+3*86400000).toISOString().slice(0,10),time:'Morning',locationType:'Come to my location',preferredContact:'text',consent:true});
 const newRequest=()=>({requestId:randomUUID(),continuationProof:randomBytes(32).toString('base64url'),details:data(),attachments:[{name:'photo.jpg',type:'image/jpeg',size:5},{name:'video.mp4',type:'video/mp4',size:5}]});
