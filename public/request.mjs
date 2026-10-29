@@ -1,4 +1,4 @@
-export const SERVICES = Object.freeze({brakes:'Brake pads & rotors',suspension:'Suspension',ignition:'Spark plugs & ignition coils','engine-filter':'Engine air filters','cabin-filter':'Cabin air filters',inspection:'Vehicle inspections'});
+export const SERVICES = Object.freeze({brakes:'Brake pads & rotors',suspension:'Suspension',ignition:'Spark plugs & ignition coils','engine-filter':'Engine air filters','cabin-filter':'Cabin air filters',inspection:'Vehicle inspections',other:'Not sure / something else'});
 export const LIMITS = Object.freeze({count:6,perFile:15*1024*1024,total:30*1024*1024});
 export function easternToday(date = new Date()) {
   const parts = new Intl.DateTimeFormat('en-US',{timeZone:'America/New_York',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(date);
