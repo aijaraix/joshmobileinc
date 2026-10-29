@@ -2,7 +2,7 @@
 
 ## Public service
 
-Customers complete one required form, including a 17-character VIN, service address, preferred contact channel, date/time preference, consent, and optional private media. The six named service categories remain available alongside a “Not sure / something else” fallback for customers who cannot identify the issue; the fallback is included in the pending production correction. The server saves the private job first and then displays its `JM-XXXXXXXX` receipt. SMS and WhatsApp are optional receipt actions only; a user can close either app and the saved request remains. A request is never an automatic reservation.
+Customers complete one required form, including a 17-character VIN, service address, preferred contact channel, date/time preference, consent, and optional private media. The six named service categories are available alongside the live “Not sure / something else” fallback for customers who cannot identify the issue. The server saves the private job first and then displays its `JM-XXXXXXXX` receipt. SMS and WhatsApp are optional receipt actions only; a user can close either app and the saved request remains. A request is never an automatic reservation.
 
 Files are capped at six, 15 MB each, 30 MB combined. Supported secure uploads are JPG, PNG, WebP, MP4, MOV, and WebM. HEIC receives conversion guidance. A reload cannot restore an old browser file selection; the receipt explains that files must be selected again to retry incomplete uploads.
 
