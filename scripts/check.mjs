@@ -6,9 +6,9 @@ for(const key of ['og:title','og:description','og:image','twitter:card','geo.reg
 assert(html.includes('/assets/josh-mobile-share-photo-v2.jpg'));
 assert.equal(readFileSync('lib/request.mjs','utf8'),readFileSync('public/request.mjs','utf8'));
 assert(statSync('public/assets/josh-mobile-social.jpg').size<300000);
-for(const name of ['Brake pads','Suspension','Spark plugs','Engine air filters','Cabin air filters','Vehicle inspections'])assert(html.includes(name));
+for(const name of ['Brake pads','Suspension','Spark plugs','Engine air filters','Cabin air filters','Vehicle inspections','Not sure / something else'])assert(html.includes(name));
 assert(!html.includes('chatgpt.site'));
 assert(!readFileSync('vercel.json','utf8').includes('rewrites'));
 assert(!html.includes('localStorage'));
 JSON.parse(html.match(/<script type="application\/ld\+json">(.*?)<\/script>/s)[1]);
-console.log('Build checks passed: local assets, six services, social metadata, JSON-LD, direct hosting.');
+console.log('Build checks passed: local assets, six services plus fallback, social metadata, JSON-LD, direct hosting.');
