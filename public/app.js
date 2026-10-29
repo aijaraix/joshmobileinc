@@ -43,7 +43,8 @@ function showReceipt(){
  if(!savedRequest)return;
  const links=deliveryLinks(savedRequest.reference),ios=/iPhone|iPad|iPod/.test(navigator.userAgent);
  $('review-title').textContent='Request received — reference '+savedRequest.reference;
- $('receipt-message').textContent='Your appointment is not confirmed yet. Josh will review your request and contact you.';
+ $('receipt-message').textContent='Josh will review and contact you by '+({text:'text',phone:'phone',email:'email',whatsapp:'WhatsApp'}[preparedData?.preferredContact]||'your preferred contact method')+'.';
+ $('text-reference').href=(ios?'sms:&body=':'sms:?body=')+encodeURIComponent('Josh Mobile request '+savedRequest.reference);
  $('request-reference').textContent=savedRequest.reference;
  $('request-summary').textContent=receipt();
  $('send-sms').href=ios?links.smsIOS:links.smsAndroid;$('send-whatsapp').href=links.whatsapp;
@@ -85,6 +86,7 @@ async function uploadSelected(){
 form.addEventListener('submit',async event=>{event.preventDefault();const details=Object.fromEntries(new FormData(form));details.consent=!!details.consent;details.vin=String(details.vin||'').toUpperCase().replace(/\s/g,'');const error=validateRequest(details)||(Array.isArray(slots)&&!slots.includes(details.time)?'Please choose an available time.':'');showError('form-error',error);if(error)return;const nextFiles=JSON.stringify(files.map(file=>[file.name,file.type,file.size,file.lastModified]));if(preparedData&&(JSON.stringify(preparedData)!==JSON.stringify(details)||fileSignature!==nextFiles)){requestId='';continuationProof='';savedRequest=null;received.clear();try{sessionStorage.removeItem(continuityKey);}catch{}}preparedData=details;fileSignature=nextFiles;try{await saveRequest();}catch(err){showError('form-error',String(err.message||'Please retry your request.'));}});
 $('retry-uploads').addEventListener('click',async()=>{if(!savedRequest)return;if(!files.length){$('share-status').textContent='Your request is already saved. After a reload, choose the original files again to retry incomplete attachments.';return;}try{await saveRequest({renew:true});}catch(error){$('share-status').textContent='Your request is saved. '+String(error.message||'Unable to renew uploads.');}});
 $('edit-request').addEventListener('click',()=>{if(savedRequest)return;review.hidden=true;form.hidden=false;$('service').focus();});
+$('copy-reference').addEventListener('click',async()=>{try{await navigator.clipboard.writeText(savedRequest.reference);$('share-status').textContent='Reference copied.';}catch{$('share-status').textContent='Select the reference above to copy it.';}});
 $('copy-message').addEventListener('click',async()=>{try{await navigator.clipboard.writeText(receipt());$('share-status').textContent='Message copied. Your request is already saved.';track('message_copied',{reference:savedRequest?.reference||''});}catch{$('share-status').textContent='Automatic copying is unavailable. Select and copy the message above.';}});
 $('copy-phone').addEventListener('click',async()=>{try{await navigator.clipboard.writeText('(646) 796-7322');$('share-status').textContent='Phone number copied. Your request is already saved.';}catch{$('share-status').textContent='Copy (646) 796-7322 into your messaging app. Your request is already saved.';}});
 $('send-sms').addEventListener('click',()=>track('sms_link_opened',{reference:savedRequest?.reference||''}));

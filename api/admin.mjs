@@ -1,3 +1,4 @@
+import {sendTelegramTest} from '../lib/telegram.mjs';
 import {randomUUID,randomBytes} from 'node:crypto';
 import {ADMINS,SECRET,text,digest,same,validVin,passwordHash,verifyPassword,sign,unsign,cookie,cookieFrom,guard,body,assert,fail} from '../lib/auth.mjs';
 import {available,readJson,writeJson,remove,account,accountPath,rate,clientIp,jobById,jobPath,allJobs,getMedia,withScheduleLock,reserveReference,releaseReference,touchJobs,jobMarker} from '../lib/private-store.mjs';
@@ -40,6 +41,7 @@ export default async function handler(req,res){try{
   res.setHeader('Content-Type',m.type);res.setHeader('Content-Disposition','inline');res.status(200);for await(const chunk of file.stream)res.write(Buffer.from(chunk));return res.end();
  }
  assert(req.method==='POST','Method not allowed.',405);const b=body(req);
+ if(action==='telegram-test'){assert(user.email===ADMINS[0],'Owner access required.',403);await rate('telegram-test:'+user.email,3,3600000);return ok(res,{telegram:await sendTelegramTest()});}
  if(action==='logout'){await remove(`sessions/${digest(user.sid)}.json`);res.setHeader('Set-Cookie',cookie('',0));return ok(res);}
  if(action==='change-password'){
   await rate('password:'+user.email,6);const a=await account(user.email);assert(await verifyPassword(b.oldPassword,a.value.hash),'Current password was not accepted.',400);assert(typeof b.newPassword==='string'&&b.newPassword.length>=12&&b.newPassword.length<=128,'Choose a password of 12–128 characters.');assert(b.newPassword!==b.oldPassword,'Use a different password.');const hash=await passwordHash(b.newPassword);await writeJson(accountPath(user.email),{...a.value,hash,changedAt:now()},a.etag);res.setHeader('Set-Cookie',cookie('',0));return ok(res,{signOut:true});
