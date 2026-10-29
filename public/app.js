@@ -1,6 +1,6 @@
 (async function(){
 'use strict';
-const {easternToday,validateRequest,fileError,receiptMessage,deliveryLinks}=await import('/request.mjs');
+const {easternToday,validateRequest,fileError,receiptMessage,deliveryLinks,selfReferenceSMS}=await import('/request.mjs');
 const $=id=>document.getElementById(id);
 const menu=$('menu-toggle'),mobile=$('mobile-menu');
 menu.addEventListener('click',()=>{const open=menu.getAttribute('aria-expanded')!=='true';menu.setAttribute('aria-expanded',String(open));menu.setAttribute('aria-label',open?'Close menu':'Open menu');mobile.hidden=!open;});
@@ -44,7 +44,7 @@ function showReceipt(){
  const links=deliveryLinks(savedRequest.reference),ios=/iPhone|iPad|iPod/.test(navigator.userAgent);
  $('review-title').textContent='Request received — reference '+savedRequest.reference;
  $('receipt-message').textContent='Josh will review and contact you by '+({text:'text',phone:'phone',email:'email',whatsapp:'WhatsApp'}[preparedData?.preferredContact]||'your preferred contact method')+'.';
- $('text-reference').href=(ios?'sms:&body=':'sms:?body=')+encodeURIComponent('Josh Mobile request '+savedRequest.reference);
+ $('text-reference').href=selfReferenceSMS(preparedData?.phone,savedRequest.reference,ios);
  $('request-reference').textContent=savedRequest.reference;
  $('request-summary').textContent=receipt();
  $('send-sms').href=ios?links.smsIOS:links.smsAndroid;$('send-whatsapp').href=links.whatsapp;
