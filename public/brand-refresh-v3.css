@@ -1,0 +1,28 @@
+/* Request-first public branding; source photographs are versioned. */
+.hero{background:#0b2e5f;min-height:680px}
+.hero-image{object-position:65% 42%}
+.hero-shade{background:linear-gradient(90deg,rgba(5,29,62,.94) 0%,rgba(5,29,62,.82) 30%,rgba(5,29,62,.12) 61%,rgba(5,29,62,0) 90%)}
+.hero h1{max-width:550px}
+.hero-intro{max-width:440px}
+.hero-note{max-width:440px;color:#e4f0ff;line-height:1.6}
+.header-book{margin-left:auto;white-space:nowrap}
+.request-first-note{margin:25px 0;padding:20px;border:1px solid #c8ddf2;border-radius:12px;background:#f1f7ff;color:#163759}
+.request-first-note p{margin:8px 0 0;font-size:14px;line-height:1.6}
+.footer-request{font-weight:700}
+.service-card#service-cabin-filter .service-photo img{object-position:center}
+@media(max-width:700px){
+ .hero{min-height:0;display:flex;flex-direction:column}
+ .hero-image{position:relative;inset:auto;height:310px;object-fit:cover;object-position:65% 35%;z-index:0}
+ .hero-shade{display:none}
+ .hero-content{padding:28px 24px 35px;width:100%;margin:0}
+ .hero h1{font-size:48px;line-height:1.06;max-width:100%;margin-bottom:19px}
+ .hero-intro{max-width:100%;margin-bottom:22px}
+ .hero .button-row{gap:12px}
+ .hero .button{font-size:13px}
+ .hero-note{max-width:100%;font-size:13px}
+ .hero-footnote{margin-top:26px}
+ .mobile-bottom-bar{justify-content:center}
+ .mobile-bottom-bar .button{width:100%;text-align:center;justify-content:center;font-size:14px}
+ .about-copy p{font-size:15px;line-height:1.8}
+}
+@media(min-width:701px) and (max-width:1080px){.desktop-nav{gap:14px}.header-book{font-size:12px;padding:13px}.hero h1{font-size:63px;max-width:430px}}

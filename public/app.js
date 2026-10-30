@@ -27,8 +27,8 @@ async function loadSlots(){
  const response=await fetch('/api/availability?date='+encodeURIComponent(date),{cache:'no-store'});
  if(!response.ok)throw Error('Could not load hours');
  const result=await response.json();if(seq!==availabilitySequence)return;
- if(result.enabled){slots=result.slots;timeSelect.replaceChildren(new Option(slots.length?'Choose available time':'No openings on this date',''),...slots.map(v=>new Option(new Date('2000-01-01T'+v+':00').toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}),v)));availabilityNote.textContent=slots.length?'Eastern Time. Josh confirms each request after reviewing the job.':'No appointments available this date. Choose another date.';}
- else {timeSelect.replaceChildren(new Option('Choose a preferred window',''),...['Morning','Afternoon','Flexible'].map(v=>new Option(v,v)));availabilityNote.textContent='Preferred windows only; Josh confirms the appointment.';}
+ if(result.enabled){slots=result.slots;timeSelect.replaceChildren(new Option(slots.length?'Choose available time':'No openings on this date',''),...slots.map(v=>new Option(new Date('2000-01-01T'+v+':00').toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}),v)));availabilityNote.textContent=slots.length?'Eastern Time. We confirm each request after reviewing the job.':'No appointments available this date. Choose another date.';}
+ else {timeSelect.replaceChildren(new Option('Choose a preferred window',''),...['Morning','Afternoon','Flexible'].map(v=>new Option(v,v)));availabilityNote.textContent='Preferred windows only; We confirm the appointment.';}
  if([...timeSelect.options].some(o=>o.value===previous))timeSelect.value=previous;
  timeSelect.disabled=false;
  }catch{if(seq!==availabilitySequence)return;timeSelect.replaceChildren(new Option('Hours unavailable — try again later',''));availabilityNote.textContent='Could not load available times. Please choose another date or try again later.';}
@@ -43,7 +43,7 @@ function showReceipt(){
  if(!savedRequest)return;
  const links=deliveryLinks(savedRequest.reference),ios=/iPhone|iPad|iPod/.test(navigator.userAgent);
  $('review-title').textContent='Request received — reference '+savedRequest.reference;
- $('receipt-message').textContent='Josh will review and contact you by '+({text:'text',phone:'phone',email:'email',whatsapp:'WhatsApp'}[preparedData?.preferredContact]||'your preferred contact method')+'.';
+ $('receipt-message').textContent='We’ll review your request and contact you by '+({text:'text',phone:'phone',email:'email',whatsapp:'WhatsApp'}[preparedData?.preferredContact]||'your preferred contact method')+'.';
  $('text-reference').href=selfReferenceSMS(preparedData?.phone,savedRequest.reference,ios);
  $('request-reference').textContent=savedRequest.reference;
  $('request-summary').textContent=receipt();
@@ -91,6 +91,6 @@ $('copy-message').addEventListener('click',async()=>{try{await navigator.clipboa
 $('copy-phone').addEventListener('click',async()=>{try{await navigator.clipboard.writeText('(646) 796-7322');$('share-status').textContent='Phone number copied. Your request is already saved.';}catch{$('share-status').textContent='Copy (646) 796-7322 into your messaging app. Your request is already saved.';}});
 $('send-sms').addEventListener('click',()=>track('sms_link_opened',{reference:savedRequest?.reference||''}));
 $('send-whatsapp').addEventListener('click',()=>track('whatsapp_link_opened',{reference:savedRequest?.reference||''}));
-$('done-request').addEventListener('click',()=>{$('share-status').textContent='Done. Your request is already saved. Josh will contact you after review.';});
+$('done-request').addEventListener('click',()=>{$('share-status').textContent='Done. Your request is already saved. We’ll contact you after reviewing the details.';});
 window.addEventListener('pagehide',()=>objectUrls.forEach(u=>URL.revokeObjectURL(u)));
 })();
