@@ -35,7 +35,7 @@ test('versioned public media matches the reviewed image bytes',()=>{
 
 const publicStyles=readFileSync('public/styles.css','utf8');
 test('public palette uses blue and neutral tokens for controls, accents and surfaces',()=>{
- for(const legacy of ['#dbf479','#538718','#d0eb65','#839671','#33462c','#4a5c39','#e9eedf','#dfe5d9','--forest','--lime'])assert(!publicStyles.toLowerCase().includes(legacy.toLowerCase()),legacy+' remains in public CSS');
+ for(const legacy of ['#dbf479','#538718','#d0eb65','#839671','#33462c','#4a5c39','#e9eedf','#dfe5d9','#edf2e9','#f0f3e8','--forest','--lime'])assert(!publicStyles.toLowerCase().includes(legacy.toLowerCase()),legacy+' remains in public CSS');
  assert(publicStyles.includes('--navy:#0a3266'));
  assert(publicStyles.includes('.service-number{background:#0a4b8d;color:#fff'));
 });
