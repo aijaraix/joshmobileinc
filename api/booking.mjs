@@ -6,6 +6,7 @@ import {guard,body,assert,fail,SECRET,digest,text,same} from '../lib/auth.mjs';
 import {available,rate,clientIp,uuid,jobById,jobPath,writeJson,mediaTypes,withScheduleLock,reserveReference,releaseReference,mutate,touchJobs} from '../lib/private-store.mjs';
 import {enforcePublicSlot} from '../lib/availability.mjs';
 import {initialNotification,notifyNewRequest} from '../lib/notifications.mjs';
+import {notifyOwnerRequest} from '../lib/push.mjs';
 const proofOK=v=>/^[A-Za-z0-9_-]{43,128}$/.test(String(v||''));
 const fingerprint=(details,attachments)=>digest(JSON.stringify({details:{name:text(details.name,90),phone:normalizePhone(details.phone),email:text(details.email,160).toLowerCase(),preferredContact:details.preferredContact,year:String(details.year),make:text(details.make,60),model:text(details.model,80),vin:text(details.vin,17).toUpperCase(),service:details.service,description:text(details.description,1800),address:text(details.address,240),city:text(details.city,100),locationType:details.locationType,date:details.date,time:details.time},attachments:attachments.map(f=>({name:text(f.name,100),type:f.type,size:f.size}))}));
 async function renewUpload(id,proof){
@@ -31,7 +32,7 @@ export default async function handler(req,res){try{
  try{await withScheduleLock(async()=>{await enforcePublicSlot(d.date,d.time);await writeJson(jobPath(j.id),j);});}catch(error){await releaseReference(reference,j.id).catch(()=>{});throw error;}
  await touchJobs('created');
  const response=res.status(201).json({ok:true,id:j.id,reference:j.reference,confirmed:false,uploadToken:attachments.length?token:'',attachmentStatus:j.attachmentStatus,receivedIndices:[],notificationState:j.notification.state});
- const work=Promise.allSettled([notifyNewRequest(j.id),notifyTelegram(j).catch(()=>{console.error('telegram_alert_failed',j.reference,0);})]);
+ const work=Promise.allSettled([notifyNewRequest(j.id),notifyOwnerRequest(j.id),notifyTelegram(j).catch(()=>{console.error('telegram_alert_failed',j.reference,0);})]);
  try{waitUntil(work);}catch{ /* The response is already committed. */ }
  return response;
 }catch(e){return fail(res,e);}}

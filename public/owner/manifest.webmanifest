@@ -1,0 +1,14 @@
+{
+  "id": "/owner/",
+  "name": "Josh Mobile Owner",
+  "short_name": "Josh Mobile",
+  "description": "Private Josh Mobile appointments and customer requests.",
+  "start_url": "/owner",
+  "scope": "/owner",
+  "display": "standalone",
+  "background_color": "#f5f8fc",
+  "theme_color": "#0b2e5f",
+  "icons": [
+    { "src": "/owner/app-icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}
