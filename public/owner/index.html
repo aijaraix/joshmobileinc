@@ -7,6 +7,8 @@
 <title>Staff Sign In | Josh Mobile</title>
 <link rel="canonical" href="https://joshmobileinc.com/owner/">
 <link rel="icon" href="/assets/jm-mark.svg">
+<link rel="manifest" href="/owner/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
 <link rel="stylesheet" href="/owner/dashboard.css">
 <script src="/owner/dashboard.js" defer>
 </script>
@@ -201,6 +203,9 @@
 <p id="detail-alert-status" class="subtle">
 </p>
 <button id="retry-alert" class="outline" type="button" hidden>Retry owner alert</button>
+<p id="detail-push-status" class="subtle">
+</p>
+<button id="retry-phone-alert" class="outline" type="button" hidden>Retry failed phone alert</button>
 </div>
 <form id="job-form">
 <div class="detail-block">
@@ -278,6 +283,21 @@
 <p class="message" id="availability-message" role="status">
 </p>
 </form>
+</div>
+</details>
+<details class="account-settings" id="phone-alert-settings" hidden>
+<summary>Josh Mobile phone alerts</summary>
+<div class="owner-card push-settings">
+<p id="push-alert-status" role="status" aria-live="polite">Phone alerts are NOT ACTIVE. No notification permission is requested until Josh chooses to enable them on a device.</p>
+<p id="push-alert-history" class="subtle">Checking private device status…</p>
+<div class="push-actions">
+<button id="enable-phone-alerts" class="primary" type="button">Enable phone alerts on this device</button>
+<button id="send-push-test" class="outline" type="button" hidden>Send test notification</button>
+<button id="disable-phone-alerts" class="outline" type="button" hidden>Turn off this device</button>
+<button id="install-owner-app" class="outline" type="button" hidden>Install Josh Mobile Owner app</button>
+</div>
+<p id="push-alert-message" class="message" role="status" aria-live="polite"></p>
+<p class="subtle">iPhone/iPad: Share → Add to Home Screen, open the installed app, then allow notifications. Requires iOS/iPadOS 16.4 or newer. Android: install from the browser menu, then allow notifications. The screen message contains only a JM request reference; sign-in is still required to see customer details.</p>
 </div>
 </details>
 <details class="account-settings">

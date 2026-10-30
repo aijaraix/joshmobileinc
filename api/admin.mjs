@@ -5,6 +5,7 @@ import {available,readJson,writeJson,remove,account,accountPath,rate,clientIp,jo
 import {settings,validateSettings,SETTINGS_PATH,enforceConfirmedSlot,confirmedConflicts} from '../lib/availability.mjs';
 import {normalizePhone} from '../lib/request.mjs';
 import {notifyNewRequest} from '../lib/notifications.mjs';
+import {ownerPushStatus,ownerPushRequestStatus,saveOwnerPushSubscription,removeOwnerPushSubscription,sendOwnerPushTest,retryOwnerPushRequest} from '../lib/push.mjs';
 const ok=(res,data={},status=200)=>res.status(status).json({ok:true,...data});
 const now=()=>new Date().toISOString();
 async function startSession(email,hash,res){const sid=randomBytes(32).toString('hex'),exp=Date.now()+43200000;await writeJson(`sessions/${digest(sid)}.json`,{email,exp,version:digest(hash)});res.setHeader('Set-Cookie',cookie(sign({email,sid,exp})));}
@@ -34,6 +35,8 @@ export default async function handler(req,res){try{
  if(req.method==='GET'&&action==='jobs'){const [jobs,marker]=await Promise.all([allJobs(),jobMarker()]);return ok(res,{jobs:jobs.map(publicJob),marker});}
  if(req.method==='GET'&&action==='changes')return ok(res,{marker:await jobMarker()});
  if(req.method==='GET'&&action==='availability')return ok(res,{availability:await settings()});
+ if(req.method==='GET'&&action==='push-status'){assert(user.email===ADMINS[0],'Owner access required.',403);return ok(res,{push:await ownerPushStatus()});}
+ if(req.method==='GET'&&action==='push-request-status'){assert(user.email===ADMINS[0],'Owner access required.',403);return ok(res,{push:await ownerPushRequestStatus(req.query?.id)});}
  if(req.method==='GET'&&['file','calendar'].includes(action)){
   const r=await jobById(req.query?.id);assert(r,'Not found.',404);
   if(action==='calendar'){res.setHeader('Content-Type','text/calendar; charset=utf-8');res.setHeader('Content-Disposition','attachment; filename="josh-mobile-appointment.ics"');return res.status(200).end(calendar(r.value));}
@@ -42,6 +45,10 @@ export default async function handler(req,res){try{
  }
  assert(req.method==='POST','Method not allowed.',405);const b=body(req);
  if(action==='telegram-test'){assert(user.email===ADMINS[0],'Owner access required.',403);await rate('telegram-test:'+user.email,3,3600000);return ok(res,{telegram:await sendTelegramTest()});}
+ if(action==='push-subscribe'){assert(user.email===ADMINS[0],'Owner access required.',403);return ok(res,{push:await saveOwnerPushSubscription(b.subscription)});}
+ if(action==='push-unsubscribe'){assert(user.email===ADMINS[0],'Owner access required.',403);return ok(res,{push:await removeOwnerPushSubscription(b.subscription)});}
+ if(action==='push-test'){assert(user.email===ADMINS[0],'Owner access required.',403);return ok(res,{result:await sendOwnerPushTest()});}
+ if(action==='push-retry'){assert(user.email===ADMINS[0],'Owner access required.',403);return ok(res,{result:await retryOwnerPushRequest(b.id)});}
  if(action==='logout'){await remove(`sessions/${digest(user.sid)}.json`);res.setHeader('Set-Cookie',cookie('',0));return ok(res);}
  if(action==='change-password'){
   await rate('password:'+user.email,6);const a=await account(user.email);assert(await verifyPassword(b.oldPassword,a.value.hash),'Current password was not accepted.',400);assert(typeof b.newPassword==='string'&&b.newPassword.length>=12&&b.newPassword.length<=128,'Choose a password of 12–128 characters.');assert(b.newPassword!==b.oldPassword,'Use a different password.');const hash=await passwordHash(b.newPassword);await writeJson(accountPath(user.email),{...a.value,hash,changedAt:now()},a.etag);res.setHeader('Set-Cookie',cookie('',0));return ok(res,{signOut:true});
