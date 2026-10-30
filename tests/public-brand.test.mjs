@@ -45,7 +45,7 @@ test('privacy sharing metadata matches its canonical URL, title and description'
  const read=(re,label)=>{const value=privacy.match(re)?.[1];assert(value,'Missing '+label);return value;};
  const canonical=read(/<link rel="canonical" href="([^"]+)"/,'canonical URL');
  assert.equal(read(/<meta property="og:url" content="([^"]+)"/,'Open Graph URL'),canonical);
- const title=read(/<title>(.*?)<\\/title>/s,'title');
+ const title=read(new RegExp('<title>(.*?)</title>','s'),'title');
  assert.equal(read(/<meta property="og:title" content="([^"]+)"/,'Open Graph title'),title);
  assert.equal(read(/<meta name="twitter:title" content="([^"]+)"/,'Twitter title'),title);
  const description=read(/<meta name="description" content="([^"]+)"/,'description');
