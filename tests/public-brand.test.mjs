@@ -39,3 +39,16 @@ test('public palette uses blue and neutral tokens for controls, accents and surf
  assert(publicStyles.includes('--navy:#0a3266'));
  assert(publicStyles.includes('.service-number{background:#0a4b8d;color:#fff'));
 });
+
+const privacy=readFileSync('public/privacy.html','utf8');
+test('privacy sharing metadata matches its canonical URL, title and description',()=>{
+ const read=(re,label)=>{const value=privacy.match(re)?.[1];assert(value,'Missing '+label);return value;};
+ const canonical=read(/<link rel="canonical" href="([^"]+)"/,'canonical URL');
+ assert.equal(read(/<meta property="og:url" content="([^"]+)"/,'Open Graph URL'),canonical);
+ const title=read(/<title>(.*?)<\\/title>/s,'title');
+ assert.equal(read(/<meta property="og:title" content="([^"]+)"/,'Open Graph title'),title);
+ assert.equal(read(/<meta name="twitter:title" content="([^"]+)"/,'Twitter title'),title);
+ const description=read(/<meta name="description" content="([^"]+)"/,'description');
+ assert.equal(read(/<meta property="og:description" content="([^"]+)"/,'Open Graph description'),description);
+ assert.equal(read(/<meta name="twitter:description" content="([^"]+)"/,'Twitter description'),description);
+});
