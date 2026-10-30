@@ -44,3 +44,10 @@ test('owner CRM mobile layout keeps navigation and controls inside safe tap area
  assert.match(css,/@media\(max-width:650px\)/);
  assert.match(css,/:focus-visible\{outline:3px solid #66bdff/);
 });
+
+
+test('owner CRM navigation, filters, and dossier actions meet 44px touch targets',()=>{
+ assert.match(css,/\\.crm-sidebar nav button\\{[^}]*min-height:44px/);
+ assert.match(css,/\\.segmented button\\{min-height:44px/);
+ assert.match(css,/\\.job-actions a\\{white-space:normal;text-align:center;min-height:44px\\}/);
+});
