@@ -15,8 +15,28 @@ const ownerHtml=readFileSync('public/owner/index.html','utf8');
 const ownerManifest=JSON.parse(readFileSync('public/owner/manifest.webmanifest','utf8'));
 assert(ownerHtml.includes('rel="manifest" href="/owner/manifest.webmanifest"'));
 assert.equal(ownerManifest.start_url,'/owner');assert.equal(ownerManifest.scope,'/owner');
+assert.equal(ownerHtml.match(/name="theme-color" content="([^"]+)"/)?.[1],'#0a3266');
+assert(ownerHtml.includes('/assets/josh-mobile-touch-icon-blue-v4.png'));
+assert.equal(ownerManifest.theme_color,'#0a3266');assert.equal(ownerManifest.background_color,'#ffffff');
 assert(existsSync('public/owner/service-worker.js')&&existsSync('public/owner/app-icon.svg'));
+assert(existsSync('public/assets/josh-mobile-touch-icon-blue-v4.png'));
+const ownerCss=readFileSync('public/owner/dashboard.css','utf8');
+assert(ownerCss.includes(':root{font-family:Arial,Helvetica,sans-serif'));
+assert(!ownerCss.includes('font-family:Inter'));
+assert(!ownerCss.match(/#(?:def6ea|1b7651)/i));
+for(const icon of ownerManifest.icons.filter(item=>item.type==='image/png')){
+ const path='public'+icon.src;
+ assert(existsSync(path),`Missing install icon ${icon.src}`);
+ assert.deepEqual([...readFileSync(path).subarray(0,8)],[137,80,78,71,13,10,26,10]);
+}
 assert(readFileSync('public/owner/service-worker.js','utf8').includes("url.pathname.startsWith('/api/')"));
+assert(existsSync('public/owner/crm-model.mjs'));
+for(const id of ['crm-nav','overview-view','records-view','availability-view','settings-view','customer-history-list','whatsapp-customer','back-to-list'])assert(ownerHtml.includes('id="'+id+'"'),'Missing owner CRM module '+id);
+for(const label of ['Overview','New Requests','Appointments','Customers','Jobs','Messages & Follow-ups','Availability','Settings','Parts & Suppliers'])assert(ownerHtml.includes(label),'Missing owner CRM navigation '+label);
+assert(ownerHtml.includes('type="module" src="/owner/dashboard.js"'));
 const css=readFileSync('public/styles.css','utf8');
+assert(css.includes('font-family:Arial,Helvetica,sans-serif'));
+assert(html.includes('name="theme-color" content="#0a3266"'));
+assert(html.includes('/assets/josh-mobile-touch-icon-blue-v4.png'));
 for(const legacy of ['#dbf479','#538718','#d0eb65','#839671','#33462c','#4a5c39','#edf2e9','#f0f3e8','--forest','--lime'])assert(!css.toLowerCase().includes(legacy.toLowerCase()),`Legacy palette value ${legacy}`);
 console.log('Build checks passed: local assets, six services plus fallback, social metadata, JSON-LD, direct hosting.');

@@ -23,7 +23,7 @@ test('biography uses supplied local and transparent-care facts without invented 
  assert(html.includes('giving back to the community'));
 });
 test('all static HTML has the same blue photographic social image and explicit dimensions',()=>{
- function visit(dir){for(const item of readdirSync(dir,{withFileTypes:true})){const p=dir+'/'+item.name;if(item.isDirectory())visit(p);else if(p.endsWith('.html')){const s=readFileSync(p,'utf8');assert(!s.includes('josh-mobile-share-photo-v2.jpg'),p);assert.equal((s.match(/property="og:image"/g)||[]).length,1,p);assert(s.includes('josh-mobile-share-blue-v3.jpg'),p);assert(s.includes('property="og:image:width" content="1200"'),p);assert(s.includes('property="og:image:height" content="630"'),p);assert(s.includes('name="theme-color" content="#0b2e5f"'),p);}}}visit('public');
+ function visit(dir){for(const item of readdirSync(dir,{withFileTypes:true})){const p=dir+'/'+item.name;if(item.isDirectory())visit(p);else if(p.endsWith('.html')){const s=readFileSync(p,'utf8');assert(!s.includes('josh-mobile-share-photo-v2.jpg'),p);assert.equal((s.match(/property="og:image"/g)||[]).length,1,p);assert(s.includes('josh-mobile-share-blue-v3.jpg'),p);assert(s.includes('rel="apple-touch-icon" href="/assets/josh-mobile-touch-icon-blue-v4.png"'),p);assert(s.includes('property="og:image:width" content="1200"'),p);assert(s.includes('property="og:image:height" content="630"'),p);assert(s.includes('name="theme-color" content="#0a3266"'),p);}}}visit('public');
 });
 test('versioned public media matches the reviewed image bytes',()=>{
  const assets={
@@ -51,4 +51,17 @@ test('privacy sharing metadata matches its canonical URL, title and description'
  const description=read(/<meta name="description" content="([^"]+)"/,'description');
  assert.equal(read(/<meta property="og:description" content="([^"]+)"/,'Open Graph description'),description);
  assert.equal(read(/<meta name="twitter:description" content="([^"]+)"/,'Twitter description'),description);
+});
+
+const ownerCss=readFileSync('public/owner/dashboard.css','utf8');
+test('Josh Mobile browser icons, page chrome and owner typography use the current blue brand',()=>{
+ const home=readFileSync('public/index.html','utf8');
+ assert(home.includes('rel="apple-touch-icon" href="/assets/josh-mobile-touch-icon-blue-v4.png"'));
+ assert(home.includes('name="theme-color" content="#0a3266"'));
+ const mark=readFileSync('public/assets/jm-mark.svg','utf8');
+ assert(mark.includes('fill="#0A3266"')&&mark.includes('fill="#65B7FF"'));
+ const icon=readFileSync('public/assets/josh-mobile-touch-icon-blue-v4.png');
+ assert.deepEqual([...icon.subarray(0,8)],[137,80,78,71,13,10,26,10]);
+ assert(ownerCss.includes(':root{font-family:Arial,Helvetica,sans-serif'));
+ assert(!ownerCss.includes('#def6ea')&&!ownerCss.includes('#1b7651'));
 });

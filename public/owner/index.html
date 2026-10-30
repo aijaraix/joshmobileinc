@@ -8,11 +8,11 @@
 <link rel="canonical" href="https://joshmobileinc.com/owner/">
 <link rel="icon" href="/assets/jm-mark.svg">
 <link rel="manifest" href="/owner/manifest.webmanifest">
-<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+<link rel="apple-touch-icon" href="/assets/josh-mobile-touch-icon-blue-v4.png">
 <link rel="stylesheet" href="/owner/dashboard.css">
-<script src="/owner/dashboard.js" defer>
+<script type="module" src="/owner/dashboard.js" defer>
 </script>
-<meta name="theme-color" content="#0b2e5f">
+<meta name="theme-color" content="#0a3266">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Josh Mobile">
 <meta property="og:locale" content="en_US">
@@ -71,47 +71,62 @@
 <p>Review requests, prepare parts, check the VIN, and stay on top of every appointment.</p>
 </div>
 </section>
-<section id="dashboard-screen" hidden aria-label="Appointment dashboard">
+<section id="dashboard-screen" hidden aria-label="Josh Mobile customer workspace">
+<div class="crm-shell">
+<aside id="crm-sidebar" class="crm-sidebar" aria-label="CRM navigation">
+<div class="crm-sidebar-brand"><span class="crm-sidebar-mark">JM</span><div><strong>Josh Mobile</strong><small>Private CRM</small></div></div>
+<nav id="crm-nav" aria-label="Workspace sections">
+<button type="button" data-section="overview" class="active" aria-current="page"><span>Overview</span></button>
+<button type="button" data-section="leads"><span>New Requests</span><span id="nav-count-leads" class="nav-count">0</span></button>
+<button type="button" data-section="appointments"><span>Appointments</span><span id="nav-count-appointments" class="nav-count">0</span></button>
+<button type="button" data-section="customers"><span>Customers</span></button>
+<button type="button" data-section="jobs"><span>Jobs</span></button>
+<button type="button" data-section="messages"><span>Messages & Follow-ups</span></button>
+<button type="button" data-section="availability"><span>Availability</span></button>
+<button type="button" data-section="settings"><span>Settings</span></button>
+<button type="button" class="future-module" disabled aria-disabled="true"><span>Parts & Suppliers</span><small>Planned for next week</small></button>
+</nav>
+<div class="crm-sidebar-foot">Josh Mobile Inc.<small>North Broward · Eastern Time</small></div>
+</aside>
+<button class="crm-scrim" id="crm-scrim" type="button" aria-label="Close navigation" hidden></button>
+<div class="crm-main">
 <div class="dashboard-header">
+<div class="dashboard-title">
+<button id="crm-menu-toggle" class="icon-button crm-menu-toggle" type="button" aria-label="Open navigation" aria-expanded="false">☰</button>
 <div>
 <p class="tag">JOSH MOBILE · PRIVATE WORKSPACE</p>
-<h1>Good to see you.</h1>
-<p id="today-date" class="subtle">
-</p>
+<h1 id="page-title">Overview</h1>
+<p id="today-date" class="subtle"></p>
+</div>
 </div>
 <div class="header-actions">
-<span id="admin-email" class="signed-in">
-</span>
+<span id="admin-email" class="signed-in"></span>
 <span id="live-status" class="signed-in" role="status">Checking for new requests…</span>
 <button id="telegram-test" class="outline" type="button" hidden>Send Telegram test</button>
 <span id="telegram-test-status" class="signed-in" role="status"></span>
-<button id="new-job-btn" class="primary" type="button">＋ Add appointment</button>
+<button id="new-job-btn" class="primary" type="button">＋ Add customer / job</button>
 </div>
 </div>
+<section id="overview-view" class="module-pane" aria-label="Overview">
 <div class="metrics">
-<div>
-<span>New requests</span>
-<strong id="count-new">0</strong>
+<div><span>New requests</span><strong id="count-new">0</strong></div>
+<div><span>Upcoming appointments</span><strong id="count-upcoming">0</strong></div>
+<div><span>Total customers</span><strong id="count-customers">0</strong></div>
+<div><span>Completed jobs</span><strong id="count-done">0</strong></div>
 </div>
-<div>
-<span>Upcoming appointments</span>
-<strong id="count-upcoming">0</strong>
+<div class="overview-actions">
+<article><p class="tag">REQUEST PIPELINE</p><h2>Review new leads</h2><p>New website requests stay separate from booked appointments until a time is confirmed.</p><button type="button" class="outline" data-go-section="leads">Open new requests ↗</button></article>
+<article><p class="tag">SCHEDULE</p><h2>Upcoming appointments</h2><p>Only confirmed jobs with a future appointment appear in this list.</p><button type="button" class="outline" data-go-section="appointments">Open appointments ↗</button></article>
 </div>
-<div>
-<span>Total customers</span>
-<strong id="count-customers">0</strong>
-</div>
-<div>
-<span>Completed jobs</span>
-<strong id="count-done">0</strong>
-</div>
-</div>
-<div class="workspace-grid">
+</section>
+<section id="records-view" class="module-pane" hidden>
+<div class="records-heading"><div><h2 id="module-title">New Requests</h2><p id="module-description" class="subtle">Review requests that are waiting for staff follow-up.</p></div></div>
+<div class="workspace-grid" id="workspace-grid">
 <section class="list-panel">
 <div class="panel-top">
 <div>
-<h2>Customers & jobs</h2>
-<p class="subtle">Everything in one place</p>
+<h2 id="job-list-heading">New requests</h2>
+<p id="job-list-subtitle" class="subtle">Review new requests and follow up.</p>
 </div>
 <button class="icon-button" id="refresh-jobs" type="button" aria-label="Refresh jobs">↻</button>
 </div>
@@ -119,17 +134,14 @@
 <span class="sr-only">Search customers or vehicles</span>
 <input id="search-jobs" type="search" placeholder="Search customer, vehicle, VIN or phone…">
 </label>
-<div id="job-filters" class="segmented" role="group" aria-label="Filter jobs">
-<button data-filter="upcoming" class="active" type="button">Upcoming</button>
-<button data-filter="requested" type="button">Requests</button>
-<button data-filter="all" type="button">All jobs</button>
-</div>
+
 <p id="list-count" class="subtle small-text">
 </p>
 <div id="jobs-list" class="job-list" aria-live="polite">
 </div>
 </section>
 <section class="detail-panel" id="detail-panel">
+<button id="back-to-list" class="outline back-to-list" type="button" hidden>← Back to list</button>
 <div id="empty-detail" class="empty-detail">
 <div class="empty-symbol">◎</div>
 <h2>Select an appointment</h2>
@@ -149,6 +161,7 @@
 </div>
 <div class="job-actions">
 <a id="text-customer" class="primary" href="#">Text customer ↗</a>
+<a id="whatsapp-customer" class="outline" href="#" target="_blank" rel="noopener noreferrer">WhatsApp ↗</a>
 <a id="call-customer" class="outline" href="#">Call</a>
 <a id="map-customer" class="outline" href="#" target="_blank" rel="noopener noreferrer">Directions ↗</a>
 <a id="calendar-job" class="outline" href="#">Add to calendar</a>
@@ -188,6 +201,11 @@
 </strong>
 </div>
 </div>
+</div>
+<div class="contact-history detail-block">
+<h3>Other records for this contact</h3>
+<p class="subtle">Each JM request remains a separate job record. Records below share this exact contact phone number.</p>
+<div id="customer-history-list"></div>
 </div>
 <div class="detail-block">
 <h3>Requested work</h3>
@@ -265,7 +283,10 @@
 </div>
 </section>
 </div>
-<details class="account-settings" id="availability-settings">
+</section>
+<section id="availability-view" class="module-pane settings-view" hidden>
+<div class="records-heading"><div><h2>Availability</h2><p class="subtle">Keep the existing customer request hours and blocked dates.</p></div></div>
+<details class="account-settings" id="availability-settings" open>
 <summary>Working hours & availability</summary>
 <div class="owner-card">
 <p>Choose the hours customers can request. Josh confirms each booking after checking the vehicle, parts and travel. Times use Eastern Time.</p>
@@ -285,6 +306,9 @@
 </form>
 </div>
 </details>
+</section>
+<section id="settings-view" class="module-pane settings-view" hidden>
+<div class="records-heading"><div><h2>Settings</h2><p class="subtle">Owner notifications and account security.</p></div></div>
 <details class="account-settings" id="phone-alert-settings" hidden>
 <summary>Josh Mobile phone alerts</summary>
 <div class="owner-card push-settings">
@@ -314,6 +338,9 @@
 </p>
 </form>
 </details>
+</section>
+</div>
+</div>
 </section>
 </main>
 <dialog id="add-dialog">

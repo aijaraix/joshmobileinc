@@ -1,5 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" rx="112" fill="#0b2e5f"/>
-  <path d="M88 368V144h64l104 127 104-127h64v224h-70V252L256 369 158 252v116z" fill="#fff"/>
-  <path d="M392 376h48" stroke="#71c5ff" stroke-width="18" stroke-linecap="round"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-label="Josh Mobile blue and white JM monogram">
+  <rect width="512" height="512" rx="112" fill="#0a3266"/>
+  <text x="256" y="330" fill="#ffffff" font-family="Arial, Helvetica, sans-serif" font-size="236" font-style="italic" font-weight="700" letter-spacing="-16" text-anchor="middle">JM</text>
+  <path d="M72 414h145v18H66Zm185 0h187v18H250Z" fill="#66bdff"/>
 </svg>

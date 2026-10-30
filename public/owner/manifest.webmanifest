@@ -6,9 +6,11 @@
   "start_url": "/owner",
   "scope": "/owner",
   "display": "standalone",
-  "background_color": "#f5f8fc",
-  "theme_color": "#0b2e5f",
+  "background_color": "#ffffff",
+  "theme_color": "#0a3266",
   "icons": [
-    { "src": "/owner/app-icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+    { "src": "/owner/app-icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "/owner/app-icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/owner/app-icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
   ]
 }

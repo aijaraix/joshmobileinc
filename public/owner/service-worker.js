@@ -1,6 +1,6 @@
 'use strict';
-const CACHE='jm-owner-shell-v1';
-const SHELL=['/owner','/owner/','/owner/dashboard.css','/owner/dashboard.js','/owner/manifest.webmanifest','/owner/app-icon.svg','/assets/jm-mark.svg'];
+const CACHE='jm-owner-shell-v2';
+const SHELL=['/owner','/owner/','/owner/dashboard.css','/owner/dashboard.js','/owner/manifest.webmanifest','/owner/app-icon.svg','/owner/app-icon-192.png','/owner/app-icon-512.png','/assets/jm-mark.svg','/assets/josh-mobile-touch-icon-blue-v4.png'];
 self.addEventListener('install',event=>event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(SHELL)).then(()=>self.skipWaiting())));
 self.addEventListener('activate',event=>event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(key=>key!==CACHE).map(key=>caches.delete(key)))).then(()=>self.clients.claim())));
 self.addEventListener('fetch',event=>{
@@ -14,7 +14,7 @@ self.addEventListener('push',event=>{
  const title='Josh Mobile';
  const body=isRequest?`New service request · ${payload.reference}`:'Josh Mobile test notification';
  const url=isRequest?`/owner/#request=${encodeURIComponent(payload.reference)}`:'/owner/';
- event.waitUntil(self.registration.showNotification(title,{body,icon:'/owner/app-icon.svg',badge:'/assets/jm-mark.svg',tag:isRequest?`joshmobile-${payload.reference}`:'joshmobile-test',renotify:false,data:{url}}));
+ event.waitUntil(self.registration.showNotification(title,{body,icon:'/owner/app-icon-192.png',badge:'/owner/app-icon-192.png',tag:isRequest?`joshmobile-${payload.reference}`:'joshmobile-test',renotify:false,data:{url}}));
 });
 self.addEventListener('notificationclick',event=>{
  event.notification.close();
