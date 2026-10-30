@@ -32,3 +32,10 @@ test('versioned public media matches the reviewed image bytes',()=>{
  'josh-mobile-share-blue-v3.jpg':'29798157760ccd27503a785a81466ea49088e6b317a7926105e92d2250787bd1'};
  for(const [name,digest]of Object.entries(assets))assert.equal(createHash('sha256').update(readFileSync('public/assets/'+name)).digest('hex'),digest);
 });
+
+const publicStyles=readFileSync('public/styles.css','utf8');
+test('public palette uses blue and neutral tokens for controls, accents and surfaces',()=>{
+ for(const legacy of ['#dbf479','#538718','#d0eb65','#839671','#33462c','#4a5c39','#e9eedf','#dfe5d9','--forest','--lime'])assert(!publicStyles.toLowerCase().includes(legacy.toLowerCase()),legacy+' remains in public CSS');
+ assert(publicStyles.includes('--navy:#0a3266'));
+ assert(publicStyles.includes('.service-number{background:#0a4b8d;color:#fff'));
+});

@@ -11,4 +11,6 @@ assert(!html.includes('chatgpt.site'));
 assert(!readFileSync('vercel.json','utf8').includes('rewrites'));
 assert(!html.includes('localStorage'));
 JSON.parse(html.match(/<script type="application\/ld\+json">(.*?)<\/script>/s)[1]);
+const css=readFileSync('public/styles.css','utf8');
+for(const legacy of ['#dbf479','#538718','#d0eb65','#839671','#33462c','#4a5c39','--forest','--lime'])assert(!css.toLowerCase().includes(legacy.toLowerCase()),`Legacy palette value ${legacy}`);
 console.log('Build checks passed: local assets, six services plus fallback, social metadata, JSON-LD, direct hosting.');
