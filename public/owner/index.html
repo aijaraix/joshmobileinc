@@ -81,6 +81,7 @@
 <button type="button" data-section="appointments"><span>Appointments</span><span id="nav-count-appointments" class="nav-count">0</span></button>
 <button type="button" data-section="customers"><span>Customers</span></button>
 <button type="button" data-section="jobs"><span>Jobs</span></button>
+<button type="button" data-section="trash"><span>Trash</span><span id="nav-count-trash" class="nav-count">0</span></button>
 <button type="button" data-section="messages"><span>Messages & Follow-ups</span></button>
 <button type="button" data-section="availability"><span>Availability</span></button>
 <button type="button" data-section="settings"><span>Settings</span></button>
@@ -95,7 +96,7 @@
 <button id="crm-menu-toggle" class="icon-button crm-menu-toggle" type="button" aria-label="Open navigation" aria-expanded="false">☰</button>
 <div>
 <p class="tag">JOSH MOBILE · PRIVATE WORKSPACE</p>
-<h1 id="page-title">Overview</h1>
+<div class="crm-title-line"><button id="back-overview" class="outline" type="button" hidden aria-label="Back to Overview">← Overview</button><h1 id="page-title">Overview</h1></div>
 <p id="today-date" class="subtle"></p>
 </div>
 </div>
@@ -120,7 +121,7 @@
 </div>
 </section>
 <section id="records-view" class="module-pane" hidden>
-<div class="records-heading"><div><h2 id="module-title">New Requests</h2><p id="module-description" class="subtle">Review requests that are waiting for staff follow-up.</p></div></div>
+<div class="records-heading"><div><button id="requests-overview" class="overview-return" type="button">← Overview</button><h2 id="module-title">New Requests</h2><p id="module-description" class="subtle">Review requests that are waiting for staff follow-up.</p></div></div>
 <div class="workspace-grid" id="workspace-grid">
 <section class="list-panel">
 <div class="panel-top">
@@ -141,7 +142,7 @@
 </div>
 </section>
 <section class="detail-panel" id="detail-panel">
-<button id="back-to-list" class="outline back-to-list" type="button" hidden>← Back to list</button>
+<button id="back-to-list" class="outline back-to-list" type="button" hidden>← Back to requests</button>
 <div id="empty-detail" class="empty-detail">
 <div class="empty-symbol">◎</div>
 <h2>Select an appointment</h2>
@@ -158,6 +159,17 @@
 </p>
 <p id="job-summary" class="subtle">
 </p>
+</div>
+<div id="lead-management" class="lead-management">
+ <button id="delete-lead" class="outline destructive" type="button" hidden>Move lead to Trash</button>
+ <div id="trashed-lead-actions" hidden>
+  <p class="trash-notice">This lead is in Trash and does not appear in active requests or appointments.</p>
+  <div class="trash-action-buttons">
+   <button id="restore-lead" class="primary" type="button">Restore lead</button>
+   <button id="purge-lead" class="outline destructive" type="button">Delete permanently</button>
+  </div>
+ </div>
+ <p id="lead-action-message" class="message" role="status" aria-live="polite"></p>
 </div>
 <div class="job-actions">
 <a id="text-customer" class="primary" href="#">Text customer ↗</a>
@@ -343,6 +355,20 @@
 </div>
 </section>
 </main>
+<dialog id="purge-dialog" class="purge-dialog" aria-labelledby="purge-title">
+<form id="purge-form" method="dialog">
+<h2 id="purge-title">Permanently delete this lead?</h2>
+<p>All details and uploaded photos/videos associated with this lead will be removed. This cannot be undone. Other customer jobs are not affected.</p>
+<p><strong id="purge-reference-label"></strong></p>
+<label for="purge-confirm-reference">Type the request reference exactly to confirm</label>
+<input id="purge-confirm-reference" required autocomplete="off" spellcheck="false" placeholder="JM-XXXXXXXX">
+<div class="purge-actions">
+<button type="button" id="cancel-purge" class="outline">Keep lead</button>
+<button type="submit" id="confirm-purge" class="primary danger-button">Delete permanently</button>
+</div>
+<p id="purge-message" role="status"></p>
+</form>
+</dialog>
 <dialog id="add-dialog">
 <form id="add-job-form">
 <div class="modal-head">
