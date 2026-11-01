@@ -1,7 +1,7 @@
 import {sendTelegramTest} from '../lib/telegram.mjs';
 import {randomUUID,randomBytes} from 'node:crypto';
 import {ADMINS,SECRET,text,digest,same,validVin,passwordHash,verifyPassword,sign,unsign,cookie,cookieFrom,guard,body,assert,fail} from '../lib/auth.mjs';
-import {available,readJson,writeJson,remove,account,accountPath,rate,clientIp,jobById,jobPath,allJobs,getMedia,withScheduleLock,reserveReference,releaseReference,touchJobs,jobMarker} from '../lib/private-store.mjs';
+import {available,readJson,writeJson,remove,account,accountPath,rate,clientIp,jobById,jobPath,allJobs,getMedia,mediaPath,withScheduleLock,reserveReference,releaseReference,touchJobs,jobMarker} from '../lib/private-store.mjs';
 import {settings,validateSettings,SETTINGS_PATH,enforceConfirmedSlot,confirmedConflicts} from '../lib/availability.mjs';
 import {normalizePhone} from '../lib/request.mjs';
 import {notifyNewRequest} from '../lib/notifications.mjs';
@@ -56,9 +56,51 @@ export default async function handler(req,res){try{
  if(action==='availability'){const next=validateSettings(b);const saved=await withScheduleLock(async()=>{const old=await readJson(SETTINGS_PATH);await writeJson(SETTINGS_PATH,next,old?.etag);return next;});return ok(res,{availability:saved,conflicts:await confirmedConflicts(saved)});}
  if(action==='create'){const job=normalizeManual(b,user.email),reference=await reserveReference(job.id);job.reference=reference;try{await writeJson(jobPath(job.id),job);}catch(error){await releaseReference(reference,job.id).catch(()=>{});throw error;}await touchJobs('created');return ok(res,{id:job.id,reference},201);}
  if(action==='retry-notification'){assert(typeof b.id==='string','Choose a request.');const result=await notifyNewRequest(b.id);return ok(res,{notification:result});}
+ if(['trash','restore','purge'].includes(action)){
+  assert(typeof b.id==='string'&&typeof b.confirmReference==='string','Choose a lead and confirm its reference.',400);
+  return await withScheduleLock(async()=>{
+   const record=await jobById(b.id);assert(record,'Lead not found.',404);
+   const old=record.value;
+   assert(b.version===old.version,'This lead changed. Refresh and try again.',409);
+   assert(b.confirmReference===(old.reference||old.id),'Lead reference does not match.',400);
+   assert(['requested','cancelled'].includes(old.status),'Only unconfirmed or cancelled leads can be deleted. Cancel a confirmed appointment first.',409);
+   if(action==='trash'){
+    assert(!old.deletedAt,'This lead is already in Trash.',409);
+    const at=now(),j={...old,version:old.version+1,updatedAt:at,deletedAt:at,deletedBy:user.email,
+     timeline:[...(old.timeline||[]),activity(user.email,'trash','Lead moved to Trash by staff.')]};
+    await writeJson(jobPath(j.id),j,record.etag);await touchJobs('trash');
+    return ok(res,{id:j.id,job:publicJob(j)});
+   }
+   assert(old.deletedAt,'Move this lead to Trash first.',409);
+   if(action==='restore'){
+    assert(!old.purgePendingAt,'A permanent deletion was started; this record cannot be restored.',409);
+    const j={...old,version:old.version+1,updatedAt:now(),deletedAt:'',deletedBy:'',
+     timeline:[...(old.timeline||[]),activity(user.email,'restore','Lead restored from Trash.')]};
+    await writeJson(jobPath(j.id),j,record.etag);await touchJobs('restore');
+    return ok(res,{id:j.id,job:publicJob(j)});
+   }
+   assert(b.confirmText==='DELETE','Type DELETE to confirm permanent deletion.',400);
+   await rate('purge-lead:'+user.email,6,3600000);
+   let j=old;
+   if(!old.purgePendingAt){
+    j={...old,version:old.version+1,updatedAt:now(),purgePendingAt:now(),purgeBy:user.email};
+    await writeJson(jobPath(j.id),j,record.etag);
+   }
+   const paths=new Set();
+   for(const file of [...(j.attachments||[]),...(j.media||[])]){
+    if(Number.isInteger(file.index)&&file.type)paths.add(mediaPath(j.id,file.index,file.type));
+   }
+   for(const path of paths)await remove(path);
+   await remove(jobPath(j.id));
+   if(j.reference)await releaseReference(j.reference,j.id);
+   await touchJobs('purge');
+   return ok(res,{id:j.id,deleted:true,mediaRemoved:paths.size});
+  });
+ }
+
  assert(['update','message'].includes(action),'Unknown action.',400);
  return await withScheduleLock(async()=>{
-  const r=await jobById(b.id);assert(r,'Job not found.',404);const old=r.value;assert(b.version===old.version,'This job changed in another window. Refresh before saving.',409);
+  const r=await jobById(b.id);assert(r,'Job not found.',404);const old=r.value;assert(!old.deletedAt,'Restore this lead from Trash before editing it.',409);assert(b.version===old.version,'This job changed in another window. Refresh before saving.',409);
   let j={...old,version:old.version+1,updatedAt:now(),updatedBy:user.email,timeline:[...(old.timeline||[])]};
   if(action==='message'){
    const note=text(b.text,2000);assert(note,'Enter what was discussed.');assert(['sms','whatsapp','call','note'].includes(b.channel),'Choose a communication type.');j.timeline.push(activity(user.email,b.channel,note));

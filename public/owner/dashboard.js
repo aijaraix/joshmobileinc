@@ -8,38 +8,58 @@ const date=s=>s?new Date(s).toLocaleString('en-US',{timeZone:'America/New_York',
 function easternInput(s){if(!s)return '';const parts=new Intl.DateTimeFormat('en-US',{timeZone:'America/New_York',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).formatToParts(new Date(s));const p=Object.fromEntries(parts.map(x=>[x.type,x.value]));return `${p.year}-${p.month}-${p.day}T${p.hour}:${p.minute}`;}
 function easternISO(s){if(!s)return '';const candidates=[new Date(s+'-04:00'),new Date(s+'-05:00')].filter(x=>Number.isFinite(+x)&&easternInput(x.toISOString())===s);if(candidates.length!==1)throw new Error('That Eastern time is ambiguous or does not exist because of daylight saving. Choose another time.');return candidates[0].toISOString();}
 let jobs=[],selected=null,filter='overview',section='overview',activation=null,markerRevision=0,seenRequested=new Set(),unreadNew=0,soundAllowed=false,ownerEmail='',ownerPushState=null,installPrompt=null;
-const params=new URLSearchParams(location.hash.slice(1)),requestedReference=params.get('request')||'';if(params.has('activate')){activation={token:params.get('activate'),email:params.get('email')||''};history.replaceState(null,'',location.pathname);$('login-email').value=activation.email;$('login-email').readOnly=true;$('login-password').autocomplete='new-password';$('confirm-label').hidden=false;$('confirm-password').required=true;msg('login-title','Set up your account.');msg('login-submit','Create password & sign in');msg('login-subtitle','Choose a private password of at least 12 characters. Your activation link can be used once.');}
+const params=new URLSearchParams(location.hash.slice(1)),requestedReference=params.get('request')||'',initialRecordId=params.get('record')||'';
+let pendingDeepLink=requestedReference,pendingRecordId=initialRecordId;
+const initialSection=params.get('view')||((requestedReference||initialRecordId)?'leads':'overview');if(params.has('activate')){activation={token:params.get('activate'),email:params.get('email')||''};history.replaceState(null,'',location.pathname);$('login-email').value=activation.email;$('login-email').readOnly=true;$('login-password').autocomplete='new-password';$('confirm-label').hidden=false;$('confirm-password').required=true;msg('login-title','Set up your account.');msg('login-submit','Create password & sign in');msg('login-subtitle','Choose a private password of at least 12 characters. Your activation link can be used once.');}
 function showLogin(){activation=null;closeCrmNav();$('login-email').readOnly=false;$('confirm-label').hidden=true;$('confirm-password').required=false;$('login-password').autocomplete='current-password';msg('login-title','Welcome back.');msg('login-submit','Sign in');$('login-screen').hidden=false;$('dashboard-screen').hidden=true;$('signout').hidden=true;jobs=[];selected=null;$('jobs-list').replaceChildren();$('detail-media').replaceChildren();}
-function showDashboard(email){ownerEmail=email;$('telegram-test').hidden=email!=='joshmobileinc@gmail.com';$('phone-alert-settings').hidden=email!=='joshmobileinc@gmail.com';activation=null;$('login-screen').hidden=true;$('dashboard-screen').hidden=false;$('signout').hidden=false;msg('admin-email',email);msg('today-date',new Date().toLocaleDateString('en-US',{timeZone:'America/New_York',weekday:'long',month:'long',day:'numeric'})+' · Eastern time');setSection(requestedReference?'leads':'overview');if(email==='joshmobileinc@gmail.com')refreshPushStatus();load();}
+function showDashboard(email){ownerEmail=email;$('telegram-test').hidden=email!=='joshmobileinc@gmail.com';$('phone-alert-settings').hidden=email!=='joshmobileinc@gmail.com';activation=null;$('login-screen').hidden=true;$('dashboard-screen').hidden=false;$('signout').hidden=false;msg('admin-email',email);msg('today-date',new Date().toLocaleDateString('en-US',{timeZone:'America/New_York',weekday:'long',month:'long',day:'numeric'})+' · Eastern time');setSection(sectionConfig[initialSection]?initialSection:'overview','replace');if(email==='joshmobileinc@gmail.com')refreshPushStatus();load();}
 function dirty(){if(!selected||$('job-detail').hidden)return false;return [['job-status-input',selected.status],['job-confirmed-at',easternInput(selected.appointmentAt)],['job-duration',String(selected.durationMinutes||60)],['job-vin-input',selected.vin||''],['job-address-input',selected.address||''],['job-city-input',selected.city||''],['job-notes',selected.privateNotes||''],['job-parts',selected.partsTools||''],['communication-text','']].some(([id,value])=>String($(id)?.value||'')!==String(value));}
 function live(text){msg('live-status',text);}
 function chime(){if(!soundAllowed||!window.AudioContext)return;try{const context=new AudioContext(),oscillator=context.createOscillator(),gain=context.createGain();oscillator.frequency.value=880;gain.gain.setValueAtTime(.035,context.currentTime);oscillator.connect(gain).connect(context.destination);oscillator.start();oscillator.stop(context.currentTime+.08);}catch{}}
-async function load({automatic=false}={}){try{const currentId=selected?.id,keepDirty=automatic&&dirty(),previousRequests=new Set(jobs.filter(j=>j.status==='requested').map(j=>j.id)),result=await api('jobs');jobs=result.jobs||[];markerRevision=Number(result.marker?.revision||markerRevision);const fresh=jobs.filter(j=>j.status==='requested'&&!previousRequests.has(j.id));if(automatic&&fresh.length){unreadNew+=fresh.length;chime();}seenRequested=new Set(jobs.filter(j=>j.status==='requested').map(j=>j.id));render();if(currentId&&!keepDirty){const next=jobs.find(j=>j.id===currentId);if(next)choose(next.id);}if(requestedReference&&!selected){const requested=jobs.find(j=>j.reference===requestedReference);if(requested)choose(requested.id);}live(`${unreadNew?`${unreadNew} new · `:''}Updated ${new Date().toLocaleTimeString('en-US',{timeZone:'America/New_York',hour:'numeric',minute:'2-digit'})} ET${keepDirty?' · unsaved edits preserved':''}`);}catch(e){live(navigator.onLine?'Refresh unavailable.':'Offline — refresh paused.');msg('list-count',e.message);}}
+async function load({automatic=false}={}){try{const currentId=selected?.id,keepDirty=automatic&&dirty(),previousRequests=new Set(jobs.filter(j=>j.status==='requested').map(j=>j.id)),result=await api('jobs');jobs=result.jobs||[];markerRevision=Number(result.marker?.revision||markerRevision);const fresh=jobs.filter(j=>j.status==='requested'&&!previousRequests.has(j.id));if(automatic&&fresh.length){unreadNew+=fresh.length;chime();}seenRequested=new Set(jobs.filter(j=>j.status==='requested').map(j=>j.id));render();if(currentId&&!keepDirty){const next=jobs.find(j=>j.id===currentId);if(next)choose(next.id);else returnToList('replace');}if(pendingDeepLink&&!selected){const requested=jobs.find(j=>j.reference===pendingDeepLink&&!j.deletedAt);if(requested){choose(requested.id);syncNav('replace',requested.id,false);pendingDeepLink='';}}
+ if(pendingRecordId&&!selected){const requested=jobs.find(j=>j.id===pendingRecordId&&!j.deletedAt);if(requested){choose(requested.id);syncNav('replace',requested.id,false);pendingRecordId='';}}live(`${unreadNew?`${unreadNew} new · `:''}Updated ${new Date().toLocaleTimeString('en-US',{timeZone:'America/New_York',hour:'numeric',minute:'2-digit'})} ET${keepDirty?' · unsaved edits preserved':''}`);}catch(e){live(navigator.onLine?'Refresh unavailable.':'Offline — refresh paused.');msg('list-count',e.message);}}
 const sectionConfig={
  overview:{title:'Overview',pane:'overview-view',filter:'overview'},
  leads:{title:'New Requests',pane:'records-view',filter:'requested',description:'Review new requests that are waiting for staff follow-up.'},
  appointments:{title:'Appointments',pane:'records-view',filter:'upcoming',description:'Confirmed appointments with a future date and time.'},
  customers:{title:'Customers',pane:'records-view',filter:'customers',description:'Contacts grouped for browsing; each JM request remains its own record.'},
  jobs:{title:'Jobs',pane:'records-view',filter:'all',description:'All current, completed and cancelled job records.'},
+ trash:{title:'Trash',pane:'records-view',filter:'trash',description:'Deleted leads stay here until restored or explicitly removed forever.'},
  messages:{title:'Messages & Follow-ups',pane:'records-view',filter:'messages',description:'Manual contact history and follow-up notes. No messages send automatically.'},
  availability:{title:'Availability',pane:'availability-view',filter:'availability'},
  settings:{title:'Settings',pane:'settings-view',filter:'settings'}
 };
 function closeCrmNav(){if(!$('crm-sidebar'))return;$('crm-sidebar').classList.remove('open');$('crm-scrim').hidden=true;$('crm-menu-toggle').setAttribute('aria-expanded','false');}
-function setSection(next){
+function syncNav(mode='push',id='',fromList=false){
+ const hash=new URLSearchParams({view:section});
+ if(id)hash.set('record',id);
+ const url=location.pathname+'#'+hash.toString();
+ const state={jmNav:{section,record:id,fromList}};
+ if(mode==='replace')history.replaceState(state,'',url);
+ else if(mode==='push')history.pushState(state,'',url);
+}
+function confirmDiscard(){
+ return !dirty()||window.confirm('You have unsaved changes. Leave this record and discard those changes?');
+}
+function setSection(next,historyMode='push'){
  const config=sectionConfig[next];if(!config)return false;
- if(dirty()){msg('save-message','Save the current dossier edits before changing sections.');return false;}
+ if(!confirmDiscard())return false;
  section=next;filter=config.filter;
  for(const pane of document.querySelectorAll('.module-pane'))pane.hidden=pane.id!==config.pane;
  msg('page-title',config.title);
+ $('back-overview').hidden=next==='overview';
+ $('requests-overview').hidden=next==='overview';
  if(config.pane==='records-view'){
   msg('module-title',config.title);msg('module-description',config.description||'');
-  const headings={overview:['Needs attention','New requests and confirmed appointments coming up.'],requested:['New requests','Review requests that are waiting for staff follow-up.'],upcoming:['Upcoming appointments','Confirmed appointments with a future date and time.'],customers:['Customer directory','Contacts are grouped for browsing; each request stays a separate record.'],all:['All jobs','Every request and job record, including completed and cancelled work.'],messages:['Messages & follow-ups','Manual conversation history and reminders. No messages send automatically.']};
+  const headings={overview:['Needs attention','New requests and confirmed appointments coming up.'],requested:['New requests','Review requests that are waiting for staff follow-up.'],upcoming:['Upcoming appointments','Confirmed appointments with a future date and time.'],customers:['Customer directory','Contacts are grouped for browsing; each request stays a separate record.'],all:['All jobs','Every active request and job record.'],trash:['Trash','Restore accidentally deleted leads, or permanently remove an individual lead.'],messages:['Messages & follow-ups','Manual conversation history and reminders. No messages send automatically.']};
   const details=headings[filter]||headings.requested;msg('job-list-heading',details[0]);msg('job-list-subtitle',details[1]);
  }
  selected=null;$('job-detail').hidden=true;$('empty-detail').hidden=false;$('back-to-list').hidden=true;$('workspace-grid').classList.remove('has-selection');
  document.querySelectorAll('#crm-nav [data-section]').forEach(button=>{const active=button.dataset.section===next;button.classList.toggle('active',active);if(active)button.setAttribute('aria-current','page');else button.removeAttribute('aria-current');});
- closeCrmNav();if(next==='availability')loadAvailability();if(next==='settings'&&ownerEmail==='joshmobileinc@gmail.com')refreshPushStatus();render();return true;
+ closeCrmNav();if(next==='availability')loadAvailability();if(next==='settings'&&ownerEmail==='joshmobileinc@gmail.com')refreshPushStatus();
+ render();if(historyMode!=='none')syncNav(historyMode);
+ if(historyMode==='push')window.scrollTo({top:0,behavior:'instant'});
+ return true;
 }
 function jobSearchText(j){return [j.reference,j.name,j.phone,j.normalizedPhone,j.email,j.vin,j.make,j.model,j.service,j.city,j.address].join(' ').toLowerCase();}
 function renderJobButton(j){
@@ -53,15 +73,18 @@ function renderCustomerButton(group){
  return '<button type="button" class="job-item customer-item '+(selected?.id===j.id?'selected':'')+'" data-id="'+esc(j.id)+'"><span class="status">'+group.records.length+' request'+(group.records.length===1?'':'s')+'</span><strong>'+esc(j.name)+'</strong><span>'+esc(j.phone||j.email||'Contact not available')+'</span><span>'+esc(vehicle||'Vehicle details pending')+'</span><small>Latest: '+esc(j.reference||j.id)+' · '+esc(services[j.service]||j.service)+'</small><small>'+esc(j.city||'')+'</small></button>';
 }
 function render(){
- const q=$('search-jobs').value.trim().toLowerCase(),contacts=groupContacts(jobs),upcoming=jobs.filter(j=>isUpcomingAppointment(j)),requested=jobs.filter(j=>j.status==='requested');
+ const q=$('search-jobs').value.trim().toLowerCase(),active=jobs.filter(j=>!j.deletedAt),trashed=jobs.filter(j=>j.deletedAt),
+ contacts=groupContacts(active),upcoming=active.filter(j=>isUpcomingAppointment(j)),requested=active.filter(j=>j.status==='requested');
  msg('count-new',requested.length);msg('count-upcoming',upcoming.length);msg('count-customers',contacts.length);msg('count-done',jobs.filter(j=>j.status==='completed').length);
- msg('nav-count-leads',requested.length);msg('nav-count-appointments',upcoming.length);
+ msg('nav-count-leads',requested.length);msg('nav-count-appointments',upcoming.length);msg('nav-count-trash',trashed.length);
  let html='',count=0;
  if(filter==='customers'){
   const items=contacts.filter(group=>group.records.some(job=>jobSearchText(job).includes(q)));
   count=items.length;html=items.map(renderCustomerButton).join('');
  }else{
   let items=jobs.filter(j=>{
+   if(filter==='trash')return !!j.deletedAt&&jobSearchText(j).includes(q);
+   if(j.deletedAt)return false;
    const inSection=filter==='all'||filter==='requested'&&j.status==='requested'||filter==='upcoming'&&isUpcomingAppointment(j)||filter==='messages'&&(j.timeline||[]).some(item=>item.kind!=='created')||filter==='overview'&&(j.status==='requested'||isUpcomingAppointment(j));
    return inSection&&jobSearchText(j).includes(q);
   });
@@ -70,12 +93,19 @@ function render(){
  }
  msg('list-count',count+' '+(count===1?'record':'records'));
  $('jobs-list').innerHTML=html||'<div class="empty-detail"><h3>No records here yet.</h3><p>New website requests will appear here. Use Add customer / job for customers who contacted you by phone.</p></div>';
- $('jobs-list').querySelectorAll('[data-id]').forEach(button=>button.onclick=()=>{unreadNew=0;choose(button.dataset.id);});
+ $('jobs-list').querySelectorAll('[data-id]').forEach(button=>button.onclick=()=>{unreadNew=0;choose(button.dataset.id,true);});
 }
-function choose(id){
- selected=jobs.find(j=>j.id===id);if(!selected)return;const j=selected;
+function choose(id,writeHistory=false){
+ if(selected?.id!==id&&!confirmDiscard())return false;
+ selected=jobs.find(j=>j.id===id);if(!selected)return false;const j=selected;
  $('empty-detail').hidden=true;$('job-detail').hidden=false;
  const mobile=matchMedia('(max-width: 900px)').matches;$('workspace-grid').classList.toggle('has-selection',mobile);$('back-to-list').hidden=!mobile;
+ $('back-to-list').textContent=section==='trash'?'← Back to Trash':section==='leads'?'← Back to requests':'← Back to '+(sectionConfig[section]?.title||'list');
+ $('lead-management').hidden=!['requested','cancelled'].includes(j.status)&&!j.deletedAt;
+ $('delete-lead').hidden=!!j.deletedAt||!['requested','cancelled'].includes(j.status);
+ $('trashed-lead-actions').hidden=!j.deletedAt;
+ $('job-form').hidden=!!j.deletedAt;
+ document.querySelector('.job-actions').hidden=!!j.deletedAt;
  msg('job-title',j.name);msg('job-reference','Reference: '+(j.reference||j.id));msg('job-summary',services[j.service]||j.service);
  msg('job-status',j.status==='requested'?'New request':j.status);$('job-status').className='status '+j.status;
  const details={'detail-name':j.name,'detail-phone':j.phone,'detail-email':j.email||'Not provided','detail-address':[j.address,j.city].filter(Boolean).join(', ')||'Location not provided','detail-car':[j.year,j.make,j.model].filter(Boolean).join(' ')||'Vehicle details pending','detail-vin':j.vin||'Needed before confirmation','detail-description':j.description||'No work description provided.','detail-preferred':'Requested: '+(j.date||'Flexible')+' · '+(j.time||'Flexible')+' · '+(j.locationType||'Mobile service')};
@@ -95,16 +125,72 @@ function choose(id){
  msg('detail-alert-status',alertText);refreshPushRequestStatus(j.id);msg('detail-telegram-status','Telegram alert: '+(j.telegram?.state||'not available')+(j.telegram?.attempts?' · '+j.telegram.attempts+' attempt(s)':'')+'.');
  $('retry-alert').hidden=alert!=='failed';$('timeline').innerHTML=[...(j.timeline||[])].reverse().map(t=>'<article class="timeline-entry"><small>'+esc(date(t.at))+' · '+esc(t.kind)+' · '+esc(t.by)+'</small><p>'+esc(t.text)+'</p></article>').join('');
  msg('save-message','');msg('communication-message','');render();
+ if(writeHistory)syncNav('push',id,true);
+ return true;
 }
-function returnToList(){if(dirty()){msg('save-message','Save the current dossier edits before returning to the list.');return;}selected=null;$('workspace-grid').classList.remove('has-selection');$('back-to-list').hidden=true;$('job-detail').hidden=true;$('empty-detail').hidden=false;render();}
+function returnToList(historyMode='push'){
+ if(!confirmDiscard())return false;
+ const useBrowserBack=historyMode==='push'&&history.state?.jmNav?.fromList;
+ selected=null;$('workspace-grid').classList.remove('has-selection');$('back-to-list').hidden=true;
+ $('job-detail').hidden=true;$('empty-detail').hidden=false;render();
+ if(useBrowserBack)history.back();
+ else if(historyMode!=='none')syncNav('replace');
+ const heading=$('job-list-heading');heading.setAttribute('tabindex','-1');heading.focus({preventScroll:true});
+ return true;
+}
 
+async function modifyLead(action,confirmation={}){
+ if(!selected)return;
+ const item=selected,reference=item.reference||item.id;
+ try{
+  const response=await api(action,'POST',{id:item.id,version:item.version,confirmReference:reference,...confirmation});
+  msg('lead-action-message',action==='trash'?'Lead moved to Trash.':action==='restore'?'Lead restored.':'Lead deleted permanently.');
+  await load();
+  if(action==='trash')setSection('leads');else if(action==='restore')setSection('trash');else setSection('trash');
+  return response;
+ }catch(error){msg('lead-action-message',error.message);throw error;}
+}
+$('delete-lead').onclick=async()=>{
+ if(!selected||selected.deletedAt)return;
+ const j=selected,reference=j.reference||j.id;
+ if(!window.confirm('Move '+j.name+' ('+reference+') to Trash? You can restore this lead later.'))return;
+ try{await modifyLead('trash');}catch{}
+};
+$('restore-lead').onclick=async()=>{try{await modifyLead('restore');}catch{}};
+$('purge-lead').onclick=()=>{
+ if(!selected?.deletedAt)return;
+ msg('purge-message','');$('purge-confirm-reference').value='';
+ msg('purge-reference-label',selected.reference||selected.id);
+ $('purge-dialog').showModal();
+};
+$('cancel-purge').onclick=()=>$('purge-dialog').close();
+$('purge-form').onsubmit=async event=>{
+ event.preventDefault();if(!selected)return;
+ const j=selected,reference=j.reference||j.id;
+ if($('purge-confirm-reference').value.trim()!==reference){
+  msg('purge-message','The reference does not match. No data was deleted.');return;
+ }
+ $('confirm-purge').disabled=true;
+ try{await modifyLead('purge',{confirmText:'DELETE'});$('purge-dialog').close();}
+ catch(error){msg('purge-message',error.message);}
+ finally{$('confirm-purge').disabled=false;}
+};
 $('login-form').onsubmit=async e=>{e.preventDefault();const button=$('login-submit');button.disabled=true;msg('login-message','Signing in…');try{if(activation&&$('login-password').value!==$('confirm-password').value)throw new Error('Passwords do not match.');const r=await api(activation?'activate':'login','POST',{email:$('login-email').value,password:$('login-password').value,...(activation?{token:activation.token}:{})});$('login-password').value='';$('confirm-password').value='';msg('login-message','');showDashboard(r.email);}catch(err){msg('login-message',err.message);}finally{button.disabled=false;}};
 $('signout').onclick=async()=>{try{await api('logout','POST',{});location.reload();}catch(e){msg('list-count',e.message);}};
 $('refresh-jobs').onclick=()=>load();$('search-jobs').oninput=render;
 $('crm-nav').querySelectorAll('[data-section]').forEach(button=>button.onclick=()=>setSection(button.dataset.section));
+$('back-overview').onclick=()=>setSection('overview');
+$('requests-overview').onclick=()=>setSection('overview');
+window.addEventListener('popstate',event=>{
+ if($('dashboard-screen').hidden)return;
+ const state=event.state?.jmNav;
+ const next=state?.section||'overview',id=state?.record||'';
+ if(!confirmDiscard()){syncNav('push',selected?.id||'',!!selected);return;}
+ if(setSection(sectionConfig[next]?next:'overview','none')&&id)choose(id);
+});
 document.querySelectorAll('[data-go-section]').forEach(button=>button.onclick=()=>setSection(button.dataset.goSection));
 $('crm-menu-toggle').onclick=()=>{const open=!$('crm-sidebar').classList.contains('open');$('crm-sidebar').classList.toggle('open',open);$('crm-scrim').hidden=!open;$('crm-menu-toggle').setAttribute('aria-expanded',String(open));};
-$('crm-scrim').onclick=closeCrmNav;$('back-to-list').onclick=returnToList;
+$('crm-scrim').onclick=closeCrmNav;$('back-to-list').onclick=()=>returnToList();
 window.addEventListener('resize',()=>{const mobile=matchMedia('(max-width: 900px)').matches;if(selected){$('workspace-grid').classList.toggle('has-selection',mobile);$('back-to-list').hidden=!mobile;}});
 
 async function refreshPushRequestStatus(id){if(ownerEmail!=='joshmobileinc@gmail.com')return;try{const response=await fetch('/api/admin?action=push-request-status&id='+encodeURIComponent(id),{credentials:'same-origin',cache:'no-store'});const data=await response.json();if(!response.ok)throw new Error(data.error||'Request failed.');const state=data.push;const detail=ownerPushState?.enabled?state.state:'not_active';const words={not_active:'Phone alert NOT ACTIVE until Josh completes VAPID setup and opts in.',no_subscriptions:'No opted-in phone is registered.',not_found:'Request not found.',not_attempted:'Phone alert has not been attempted for this request.',sending:'Phone alert is being sent.',accepted:'Push provider accepted this alert; phone receipt is not confirmed.',failed:'Phone alert failed for at least one device.'};msg('detail-push-status',words[detail]||'Phone alert status: '+detail+'.');$('retry-phone-alert').hidden=detail!=='failed';$('retry-phone-alert').dataset.id=id;}catch(error){msg('detail-push-status','Phone alert status unavailable.');$('retry-phone-alert').hidden=true;}}
