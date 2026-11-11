@@ -4,6 +4,8 @@ const v=(d)=>validateRequest({...valid,...d},'2026-10-25');
 test('six specific services plus the unknown issue fallback',()=>{assert.equal(Object.keys(SERVICES).length,7);assert.equal(SERVICES.other,'Not sure / something else');for(const key of ['brakes','suspension','ignition','engine-filter','cabin-filter','inspection'])assert.ok(SERVICES[key]);});
 test('unknown issue fallback accepts a normal request',()=>assert.equal(v({service:'other'}),''));
 test('valid request accepted',()=>assert.equal(v({}),''));
+test('VIN is optional for a booking but is validated when supplied',()=>{assert.equal(v({vin:''}),'');assert.match(v({vin:'BADVIN'}),/17-character VIN/);});
+test('optional trim, engine and mileage are retained only when valid',()=>{assert.equal(v({trim:'Sport',engine:'2.0L turbo',mileage:'85000'}),'');assert.match(v({mileage:'85.5'}),/mileage/);});
 for(const [name,d] of Object.entries({missingService:{service:''},unknownService:{service:'engine-rebuild'},badYear:{year:'999'},missingName:{name:''},missingCity:{city:''},shortDescription:{description:'bad'},pastDate:{date:'2026-10-24'},impossibleDate:{date:'2026-13-30'},overflowDate:{date:'2026-11-31'},missingDate:{date:''},missingTime:{time:''},badPhone:{phone:'123'},badEmail:{email:'nope'},noConsent:{consent:false},badLocation:{locationType:'walk in'}}))test('reject '+name,()=>assert.notEqual(v(d),''));
 test('today allowed as request, not confirmed availability',()=>assert.equal(v({date:'2026-10-25'}),''));
 test('email optional',()=>assert.equal(v({email:''}),''));

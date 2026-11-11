@@ -14,7 +14,7 @@ Use the private owner workspace at https://joshmobileinc.com/owner/. Requests su
 - **New Requests** is the unreviewed lead queue. A preferred date is not a booking.
 - **Appointments** contains only confirmed appointments with a future date and time.
 - **Customers** groups records by the shared contact while keeping every JM request as a separate job.
-- **Jobs** includes new, confirmed, completed, and cancelled records.
+- **Jobs** includes requested, confirmed, scheduled, in-progress, completed, cancelled, and no-show records.
 - Search by customer, phone, email, JM reference, vehicle, or VIN to find the right record.
 
 ## Customer dossier
@@ -22,6 +22,20 @@ Use the private owner workspace at https://joshmobileinc.com/owner/. Requests su
 Open a customer or job to review the contact and service location, vehicle and VIN, original request, appointment preference, uploaded photos or video, parts and tools, private job notes, and chronological history. Check the reference before editing; one customer can have multiple distinct requests.
 
 Use **Internal note** for private team notes. SMS and WhatsApp actions open a prepared message in the phone's messaging app; they do not send automatically. Messages and replies are not imported into the CRM. Record important calls or replies in the timeline.
+
+## Customer records, historical work, and pricing
+
+Use **Add customer** for a caller who never completed the public form. In the customer profile, save preferences, communication instructions, private notes, and as many vehicles as needed. A vehicle may be entered without a VIN; never treat year/make/model as proof that a replacement part fits.
+
+Use **Add appointment / job** to link an existing customer and vehicle, create a new one by exact contact information, or record a historical repair. For a completed repair from the past, choose **Past completed job**, enter the actual historical service date/time, then save. The record keeps its own date, vehicle and prices even if the customer profile is later corrected.
+
+In **Estimates and pricing**, enter staff-recorded amounts only. The dashboard stores quoted parts/labor, job charges, fees, discounts, tax, final total, amount paid, payment state, and outstanding balance as cents. It does not charge a card, issue an invoice, calculate a filing obligation, or send a receipt.
+
+## Parts & Suppliers
+
+Create a **parts lookup task** from a job only when replacement research is needed. Record the actual vehicle facts, part numbers, supplier, price, availability, source URL, and compatibility state. Use supplier sites manually through Josh's own authorized account. No supplier API, live inventory, automatic fitment result, scraper, purchase order, or price guarantee is active.
+
+For a proposed estimate, save a real manual supplier quote and set optional markup/default labor in **Settings**. Mark compatibility verified only after Josh has checked it. Josh's owner account must approve an estimate before it is used in a manual customer discussion; the dashboard sends no message automatically.
 
 To book work, set the status to **Confirmed**, add the agreed date, time, and duration, then save. Confirm the details with the customer first. Use **Completed** after the work is finished. Cancel a record only when the appointment or synthetic QA request should no longer be scheduled; preserve the history.
 

@@ -1,6 +1,6 @@
 export function isUpcomingAppointment(job,now=Date.now()){
  const start=Date.parse(job?.appointmentAt||'');
- return job?.status==='confirmed'&&Number.isFinite(start)&&start>now;
+ return ['confirmed','scheduled'].includes(job?.status)&&Number.isFinite(start)&&start>now;
 }
 
 export function contactKey(job){

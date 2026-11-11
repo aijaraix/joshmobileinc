@@ -2,7 +2,7 @@
 
 ## Public service
 
-Customers complete one required form, including a 17-character VIN, service address, preferred contact channel, date/time preference, consent, and optional private media. The six named service categories are available alongside the live “Not sure / something else” fallback for customers who cannot identify the issue. The server saves the private job first and then displays its `JM-XXXXXXXX` receipt. SMS and WhatsApp are optional receipt actions only; a user can close either app and the saved request remains. A request is never an automatic reservation.
+Customers complete one required form with year/make/model, service address, preferred contact channel, date/time preference, consent, and optional trim, engine, mileage, VIN, and private media. A supplied VIN must be valid, but VIN is not mandatory for every request. The six named service categories are available alongside the live “Not sure / something else” fallback for customers who cannot identify the issue. The server saves the private job first and then displays its `JM-XXXXXXXX` receipt. SMS and WhatsApp are optional receipt actions only; a user can close either app and the saved request remains. A request is never an automatic reservation.
 
 Files are capped at six, 15 MB each, 30 MB combined. Supported secure uploads are JPG, PNG, WebP, MP4, MOV, and WebM. HEIC receives conversion guidance. A reload cannot restore an old browser file selection; the receipt explains that files must be selected again to retry incomplete uploads.
 
@@ -12,7 +12,7 @@ Files are capped at six, 15 MB each, 30 MB combined. Supported secure uploads ar
 2. **Set hours:** In the private workspace, open **Working hours & availability**, enter actual Eastern-time days/hours and days off, then enable public slots only when ready. Before that, customers request a preferred window. Review any preserved conflict warning before changing an existing appointment.
 3. **Spot a new request:** Keep the authenticated dashboard open during the workday. Its status line checks a small change marker when active, visible, and online; the New requests count and badge update without replacing unsaved notes. Automatic owner email is NOT ACTIVE until the separate authorization below passes.
 4. **Open and review:** Search the receipt reference, customer name, phone, vehicle, or VIN. Review the address, requested work, attachment count (`received of expected`), and failures. A missing attachment is distinct from no photos selected.
-5. **Confirm and text:** Set the final Eastern date/time and duration, then change status to Confirmed. Use **Text customer** to open the phone’s ordinary SMS app, and save an honest dated conversation note after a call, SMS, or WhatsApp discussion. The site does not import either conversation automatically.
+5. **Confirm and text:** Set the final Eastern date/time and duration, then change status to Confirmed or Scheduled. Use **Text customer** to open the phone’s ordinary SMS app, and save an honest dated conversation note after a call, SMS, or WhatsApp discussion. The site does not import either conversation automatically.
 
 ## Optional owner-email alert
 
