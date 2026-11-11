@@ -4,6 +4,7 @@ import {ADMINS,SECRET,text,digest,same,validVin,passwordHash,verifyPassword,sign
 import {available,readJson,writeJson,remove,account,accountPath,rate,clientIp,jobById,jobPath,allJobs,getMedia,mediaPath,withScheduleLock,reserveReference,releaseReference,touchJobs,jobMarker} from '../lib/private-store.mjs';
 import {settings,validateSettings,SETTINGS_PATH,enforceConfirmedSlot,confirmedConflicts} from '../lib/availability.mjs';
 import {normalizePhone} from '../lib/request.mjs';
+import {pricingFields} from '../lib/staff-pricing.mjs';
 import {notifyNewRequest} from '../lib/notifications.mjs';
 import {ownerPushStatus,ownerPushRequestStatus,saveOwnerPushSubscription,removeOwnerPushSubscription,sendOwnerPushTest,retryOwnerPushRequest} from '../lib/push.mjs';
 const ok=(res,data={},status=200)=>res.status(status).json({ok:true,...data});
@@ -12,7 +13,29 @@ async function startSession(email,hash,res){const sid=randomBytes(32).toString('
 async function session(req){const d=unsign(cookieFrom(req));if(!d||!ADMINS.includes(d.email)||!/^[a-f0-9]{64}$/.test(d.sid||''))return null;const [s,a]=await Promise.all([readJson(`sessions/${digest(d.sid)}.json`),account(d.email)]);return s&&a&&s.value.email===d.email&&s.value.exp>Date.now()&&s.value.version===digest(a.value.hash)?d:null;}
 function publicJob(j){const {uploadHash,uploadUntil,continuationHash,intakeHash,...safe}=j;return safe;}
 const activity=(who,kind,message)=>({id:randomUUID(),at:now(),by:who,kind,text:message});
-function normalizeManual(b,owner){const id=randomUUID();const j={id,createdAt:now(),updatedAt:now(),version:1,source:'manual',status:'requested',name:text(b.name,90),phone:text(b.phone,30),normalizedPhone:normalizePhone(b.phone),email:text(b.email,160),preferredContact:'text',year:text(b.year,4),make:text(b.make,60),model:text(b.model,80),vin:text(b.vin,17).toUpperCase(),service:text(b.service,100),description:text(b.description,1800),address:text(b.address,240),city:text(b.city,100),date:text(b.date,10),time:text(b.time,40),locationType:'Come to my location',appointmentAt:'',durationMinutes:60,privateNotes:'',partsTools:'',media:[],attachments:[],attachmentStatus:{expected:0,received:0,failed:[]},notification:{state:'manual',eventId:''},timeline:[activity(owner,'created','Job added by staff')],updatedBy:owner};assert(j.name&&j.phone.replace(/\D/g,'').length>=10&&j.address&&j.city,'Customer name, phone, address and city are required.');assert(!j.vin||validVin(j.vin),'VIN must contain 17 characters, excluding I, O and Q.');return j;}
+function normalizeManual(b,owner){
+ const id=randomUUID(),stamp=now(),status=b.recordKind==='completed'?'completed':'requested';
+ const rawTime=String(b.appointmentAt||''),parsed=rawTime?Date.parse(rawTime):NaN;
+ assert(!rawTime||Number.isFinite(parsed),'Use a valid appointment date and time.',400);
+ assert(status!=='completed'||!rawTime||parsed<=Date.now(),'A completed historical job must have a past appointment.',400);
+ const duration=Number(b.durationMinutes||60);
+ assert(Number.isInteger(duration)&&duration>=30&&duration<=480,'Duration must be 30–480 minutes.',400);
+ const j={id,createdAt:stamp,updatedAt:stamp,version:1,source:'manual',status,
+  name:text(b.name,90),phone:text(b.phone,30),normalizedPhone:normalizePhone(b.phone),
+  email:text(b.email,160).toLowerCase(),preferredContact:'text',
+  year:text(b.year,4),make:text(b.make,60),model:text(b.model,80),vin:text(b.vin,17).toUpperCase(),
+  service:text(b.service,100),description:text(b.description,1800),address:text(b.address,240),city:text(b.city,100),
+  date:text(b.date,10),time:text(b.time,40),locationType:'Come to my location',
+  appointmentAt:status==='completed'&&rawTime?new Date(parsed).toISOString():'',
+  durationMinutes:duration,privateNotes:text(b.privateNotes,6000),partsTools:text(b.partsTools,4000),
+  ...pricingFields(b),media:[],attachments:[],attachmentStatus:{expected:0,received:0,failed:[]},
+  notification:{state:'manual',eventId:''},timeline:[activity(owner,'created',status==='completed'?'Historical completed job entered by staff':'Customer/job entered by staff')],updatedBy:owner};
+ assert(j.name&&j.phone.replace(/\D/g,'').length>=10,'Customer name and valid phone are required.',400);
+ assert(!j.email||/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(j.email),'Enter a valid email address.',400);
+ assert(!j.vin||validVin(j.vin),'VIN must contain 17 characters, excluding I, O and Q.',400);
+ assert(!j.year||/^(?:19|20)\d{2}$/.test(j.year),'Vehicle year must be four digits.',400);
+ return j;
+}
 function escapeICS(s){return String(s||'').replace(/\\/g,'\\\\').replace(/\n/g,'\\n').replace(/[,;]/g,'\\$&').replace(/\r/g,'');}
 function calendar(j){assert(j.status==='confirmed'&&j.appointmentAt,'Only confirmed appointments can be added to a calendar.');const stamp=v=>new Date(v).toISOString().replace(/[-:]/g,'').replace(/\.\d{3}/,'');return ['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Josh Mobile//Appointments//EN','BEGIN:VEVENT',`UID:${j.id}@joshmobileinc.com`,`DTSTAMP:${stamp(Date.now())}`,`DTSTART:${stamp(j.appointmentAt)}`,`DTEND:${stamp(Date.parse(j.appointmentAt)+(j.durationMinutes||60)*60000)}`,`SUMMARY:${escapeICS('Josh Mobile: '+j.name+' — '+j.service)}`,`LOCATION:${escapeICS(j.address+', '+j.city)}`,`DESCRIPTION:${escapeICS([j.year,j.make,j.model].join(' ')+'\n'+j.description+'\nParts/tools: '+j.partsTools)}`,'BEGIN:VALARM','TRIGGER:-PT24H','ACTION:DISPLAY','DESCRIPTION:Josh Mobile appointment tomorrow','END:VALARM','BEGIN:VALARM','TRIGGER:-PT1H','ACTION:DISPLAY','DESCRIPTION:Josh Mobile appointment in one hour','END:VALARM','END:VEVENT','END:VCALENDAR'].join('\r\n');}
 export default async function handler(req,res){try{
@@ -107,8 +130,23 @@ export default async function handler(req,res){try{
   }else{
    assert(['requested','confirmed','completed','cancelled'].includes(b.status),'Choose a valid job status.');
    const at=b.appointmentAt?String(b.appointmentAt):'';const duration=Number(b.durationMinutes||60);assert(Number.isInteger(duration)&&duration>=30&&duration<=480,'Duration must be 30–480 minutes.');
-   j={...j,status:b.status,vin:text(b.vin,17).toUpperCase(),address:text(b.address,240),city:text(b.city,100),privateNotes:text(b.privateNotes,6000),partsTools:text(b.partsTools,4000),durationMinutes:duration};
-   assert(j.address&&j.city,'Service address and city are required.');assert(!j.vin||validVin(j.vin),'VIN must have 17 valid characters.');
+   const field=(key,max,prior)=>Object.hasOwn(b,key)?text(b[key],max):prior;
+   j={...j,status:b.status,durationMinutes:duration,
+    name:field('name',90,old.name),phone:field('phone',30,old.phone),
+    email:field('email',160,old.email||'').toLowerCase(),
+    year:field('year',4,old.year||''),make:field('make',60,old.make||''),
+    model:field('model',80,old.model||''),vin:field('vin',17,old.vin||'').toUpperCase(),
+    service:field('service',100,old.service||''),description:field('description',1800,old.description||''),
+    date:field('date',10,old.date||''),time:field('time',40,old.time||''),
+    address:field('address',240,old.address||''),city:field('city',100,old.city||''),
+    privateNotes:field('privateNotes',6000,old.privateNotes||''),partsTools:field('partsTools',4000,old.partsTools||''),
+    ...pricingFields(b,old)};
+   j.normalizedPhone=normalizePhone(j.phone);
+   assert(j.name&&j.phone.replace(/\D/g,'').length>=10,'Customer name and phone are required.',400);
+   assert(!j.email||/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(j.email),'Enter a valid email address.',400);
+   assert(!j.vin||validVin(j.vin),'VIN must have 17 valid characters.',400);
+   assert(!j.year||/^(?:19|20)\d{2}$/.test(j.year),'Vehicle year must be four digits.',400);
+   if(j.status==='confirmed')assert(j.address&&j.city,'Address and city are required before confirming an appointment.',400);
    if(j.status==='confirmed'){
     assert(validVin(j.vin),'A valid VIN is required before confirming this appointment.');
     const start=Date.parse(at);const changed=old.status!=='confirmed'||old.appointmentAt!==at||old.durationMinutes!==duration;
@@ -116,6 +154,18 @@ export default async function handler(req,res){try{
     if(changed)await enforceConfirmedSlot(new Date(start).toISOString(),duration,j.id);
     const end=start+duration*60000;const others=await allJobs();assert(!others.some(x=>x.id!==j.id&&x.status==='confirmed'&&Date.parse(x.appointmentAt)<end&&Date.parse(x.appointmentAt)+(x.durationMinutes||60)*60000>start),'This appointment overlaps another confirmed job.',409);j.appointmentAt=new Date(start).toISOString();
    }
+   if(j.status!=='confirmed'&&at){
+    const stamp=Date.parse(at);
+    assert(Number.isFinite(stamp),'Choose a valid appointment date and time.',400);
+    if(j.status==='completed')assert(stamp<=Date.now(),'A completed job must have a past appointment.',400);
+    // Requested work has no confirmed appointment. Only completed/cancelled
+    // records may retain or correct a historical appointment date.
+    if(j.status==='completed'||j.status==='cancelled')j.appointmentAt=new Date(stamp).toISOString();
+   }
+   if(j.status==='requested')j.appointmentAt='';
+   const edited=['name','phone','email','year','make','model','vin','service','description','address','city','date','time','quotedPartsCents','quotedLaborCents','supplierPartsCostCents','finalChargedCents','paymentStatus'];
+   const changedFields=edited.filter(k=>(old[k]??null)!==(j[k]??null));
+   if(changedFields.length)j.timeline.push(activity(user.email,'edited','Updated customer, vehicle or pricing: '+changedFields.join(', ')));
    if(old.status!==j.status||old.appointmentAt!==j.appointmentAt)j.timeline.push(activity(user.email,'status',`Status: ${j.status}${j.appointmentAt?' · '+j.appointmentAt:''}`));
   }
   assert(j.timeline.length<=1000,'Conversation history capacity reached; contact your administrator.',409);await writeJson(jobPath(j.id),j,r.etag);await touchJobs(action);return ok(res,{id:j.id,job:publicJob(j)});

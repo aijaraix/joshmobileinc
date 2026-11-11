@@ -40,6 +40,30 @@ r=await call(admin,'create',{...details,phone:'202-555-0143'},managerCookie);che
 r=await call(admin,'update',{...update,id:second.id,version:second.version},managerCookie);check('Overlapping appointments rejected',()=>assert.equal(r.status,409));
 r=await call(admin,'message',{id,version:j.version,channel:'sms',text:'Synthetic customer confirmed the appointment by text.'},ownerCookie);check('Conversation trail persisted',()=>assert.equal(r.status,200));j=r.data.job;
 r=await call(admin,'jobs',null,managerCookie,'GET');check('Second administrator reads saved notes and conversation',()=>{const x=r.data.jobs.find(x=>x.id===id);assert.equal(x.privateNotes,'Synthetic private note');assert(x.timeline.some(x=>x.kind==='sms'));});
-r=await call(admin,'update',{...update,version:j.version,status:'completed'},ownerCookie);check('Job marked complete',()=>assert.equal(r.status,200));
+
+const historicDate=new Date(Date.now()-4*86400000).toISOString();
+r=await call(admin,'update',{...update,version:j.version,status:'completed',appointmentAt:historicDate},ownerCookie);check('Job marked complete',()=>assert.equal(r.status,200));
+j=r.data.job;
+const edited={...update,version:j.version,status:'completed',appointmentAt:historicDate,
+ name:'Corrected Synthetic Customer',phone:'202-555-0194',email:'synthetic@example.com',
+ year:'2017',make:'Toyota',model:'Camry',service:'Brake pads and rotors',
+ description:'Historically completed brake service.',date:'2026-10-22',time:'Afternoon',
+ quotedParts:'145.50',quotedLabor:'100',supplierPartsCost:'75.25',
+ finalCharged:'245.50',paymentStatus:'paid'};
+r=await call(admin,'update',edited,ownerCookie);
+check('Staff can edit completed historical job and all customer details',()=>assert.equal(r.status,200)&&assert.equal(r.data.job.name,edited.name)&&assert.equal(r.data.job.make,'Toyota')&&assert.equal(r.data.job.appointmentAt,historicDate));
+j=r.data.job;
+check('Historical editing preserves identity, attachments and audit history',()=>assert(j.reference)&&j.media.length===1&&j.timeline.some(t=>t.kind==='edited'));
+check('Parts/labor quote and final amount stored in cents',()=>assert.equal(j.quotedPartsCents,14550)&&assert.equal(j.quotedLaborCents,10000)&&assert.equal(j.quotedTotalCents,24550)&&assert.equal(j.finalChargedCents,24550));
+r=await call(admin,'update',{...edited,version:j.version,quotedLabor:'-10'},ownerCookie);
+check('Invalid negative pricing is rejected',()=>assert.equal(r.status,400));
+r=await call(admin,'update',{...edited,version:j.version-1},managerCookie);
+check('Stale edits to completed job rejected',()=>assert.equal(r.status,409));
+r=await call(admin,'create',{name:'Synthetic Past Customer',phone:'202-555-0167',recordKind:'completed',appointmentAt:historicDate,year:'2016',make:'Honda',model:'Accord',service:'Starter replacement',quotedParts:'100.25',quotedLabor:'80',finalCharged:'180.25',paymentStatus:'unpaid'},ownerCookie);
+check('Staff can add a completed past appointment without customer address',()=>assert.equal(r.status,201));
+const pastEntry=(await jobById(r.data.id)).value;
+check('Historical customer stores completion time and pricing',()=>assert.equal(pastEntry.status,'completed')&&pastEntry.appointmentAt===historicDate&&pastEntry.quotedTotalCents===18025);
+r=await call(admin,'create',{name:'Synthetic Past Customer',phone:'202-555-0167',recordKind:'completed',appointmentAt:new Date(Date.now()+86400000).toISOString()},ownerCookie);
+check('Future date cannot be entered as completed historical work',()=>assert.equal(r.status,400));
 r=await call(admin,'logout',{},managerCookie);check('Logout succeeds',()=>assert.equal(r.status,200));r=await call(admin,'jobs',null,managerCookie,'GET');check('Logged-out session revoked server-side',()=>assert.equal(r.status,401));
 r=await call(admin,'change-password',{oldPassword:password,newPassword:password+'new'},ownerCookie);check('Password change accepted',()=>assert.equal(r.status,200));r=await call(admin,'jobs',null,ownerCookie,'GET');check('Old sessions invalidated after password change',()=>assert.equal(r.status,401));return checks;}
