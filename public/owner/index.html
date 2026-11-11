@@ -239,6 +239,22 @@
 </div>
 <form id="job-form">
 <div class="detail-block">
+<h3>Edit customer & vehicle</h3>
+<p class="subtle">Change contact, vehicle and service details without creating a duplicate customer. Save below to keep a dated staff audit entry.</p>
+<div class="form-grid">
+<label>Customer name<input id="edit-name" maxlength="90" required autocomplete="name"></label>
+<label>Phone number<input id="edit-phone" type="tel" maxlength="30" required autocomplete="tel"></label>
+<label class="wide">Email (optional)<input id="edit-email" type="email" maxlength="160" autocomplete="email"></label>
+<label>Vehicle year<input id="edit-year" maxlength="4" inputmode="numeric"></label>
+<label>Make<input id="edit-make" maxlength="60"></label>
+<label>Model<input id="edit-model" maxlength="80"></label>
+<label class="wide">Service needed / performed<input id="edit-service" maxlength="100"></label>
+<label class="wide">Service description<textarea id="edit-description" maxlength="1800" rows="3"></textarea></label>
+<label>Requested date<input id="edit-preferred-date" type="date"></label>
+<label>Requested time or window<input id="edit-preferred-time" maxlength="40"></label>
+</div>
+</div>
+<div class="detail-block">
 <h3>Appointment & preparation</h3>
 <div class="form-grid">
 <label>Status<select id="job-status-input" name="status">
@@ -266,11 +282,42 @@
 </textarea>
 </label>
 </div>
+<div class="pricing-block">
+<h3>Estimates and pricing</h3>
+<p class="subtle">Staff-entered amounts only. Quoted prices are not payments, invoices or live wholesale quotes. Taxes and additional fees are not calculated.</p>
+<div class="form-grid">
+<label>Quoted parts ($)<input id="quoted-parts" type="number" inputmode="decimal" min="0" max="1000000" step="0.01" placeholder="0.00"></label>
+<label>Quoted labor ($)<input id="quoted-labor" type="number" inputmode="decimal" min="0" max="1000000" step="0.01" placeholder="0.00"></label>
+<div class="wide price-summary" aria-live="polite">Parts + labor quoted subtotal: <strong id="quote-total">Not quoted</strong></div>
+<label>Actual cost of parts ($)<input id="supplier-parts-cost" type="number" inputmode="decimal" min="0" max="1000000" step="0.01" placeholder="0.00"></label>
+<label>Final total charged ($)<input id="final-charged" type="number" inputmode="decimal" min="0" max="1000000" step="0.01" placeholder="0.00"></label>
+<label>Payment record
+<select id="payment-status">
+<option value="not_recorded">Not recorded</option>
+<option value="unpaid">Unpaid</option>
+<option value="partially_paid">Partially paid</option>
+<option value="paid">Paid (staff recorded)</option>
+</select></label>
+</div>
+</div>
 <button class="primary" id="save-job" type="submit">Save job details</button>
 <p class="message" id="save-message" role="status">
 </p>
 </div>
 </form>
+<section class="detail-block supplier-launchpad">
+<h3>Parts research (manual lookup)</h3>
+<p class="subtle">Use the vehicle/VIN to identify compatible parts in your own supplier account. Prices and availability are not connected to Josh Mobile yet. Verify fitment, trim, and part number before quoting.</p>
+<p id="fitment-summary" class="fitment-summary"></p>
+<button id="copy-fitment" class="outline" type="button">Copy vehicle details</button>
+<div class="supplier-links">
+<a href="https://app.partstech.com/" target="_blank" rel="noopener noreferrer">PartsTech ↗</a>
+<a href="https://www.oreillypro.com/login" target="_blank" rel="noopener noreferrer">O'Reilly Pro ↗</a>
+<a href="https://m.napaprolink.com/" target="_blank" rel="noopener noreferrer">NAPA PROLink ↗</a>
+<a href="https://www.autozonepro.com/" target="_blank" rel="noopener noreferrer">AutoZone Pro ↗</a>
+</div>
+<p id="fitment-copy-status" class="message" role="status" aria-live="polite"></p>
+</section>
 <section class="detail-block">
 <h3>Conversation & job history</h3>
 <p class="subtle">Text from your phone to keep the original SMS thread. Record important replies here for the team. Messages are not automatically imported.</p>
@@ -375,7 +422,7 @@
 <h2>New job / customer</h2>
 <button type="button" class="icon-button" id="close-dialog" aria-label="Close">×</button>
 </div>
-<p class="subtle">Add a customer who called or texted you. Confirm the appointment after collecting their VIN.</p>
+<p class="subtle">Create a customer/request with just name and phone, or record a past completed job. VIN and service address are required when confirming a future appointment.</p>
 <div class="form-grid">
 <label>Customer name<input name="name" required maxlength="90">
 </label>
@@ -391,9 +438,9 @@
 </label>
 <label class="wide">VIN<input name="vin" maxlength="17" minlength="17" placeholder="17 characters">
 </label>
-<label class="wide">Street address<input name="address" required maxlength="240" autocomplete="street-address">
+<label class="wide">Street address<input name="address" maxlength="240" autocomplete="street-address">
 </label>
-<label class="wide">City / ZIP<input name="city" required maxlength="100">
+<label class="wide">City / ZIP<input name="city" maxlength="100">
 </label>
 <label class="wide">Service<input name="service" required maxlength="100" placeholder="Brake pads and rotors">
 </label>
@@ -404,6 +451,25 @@
 </label>
 <label>Preferred time<input name="time" maxlength="40" placeholder="Morning">
 </label>
+<label class="wide">Record type
+<select name="recordKind" id="manual-record-kind">
+<option value="requested">New customer / service request</option>
+<option value="completed">Past completed job (historical)</option>
+</select></label>
+<label>Actual past appointment <small>(Eastern; for completed job)</small>
+<input name="appointmentAt" type="datetime-local" id="manual-appointment-at"></label>
+<label>Duration (minutes)<input name="durationMinutes" type="number" min="30" max="480" step="15" value="60"></label>
+<label>Quoted parts ($)<input name="quotedParts" type="number" inputmode="decimal" min="0" max="1000000" step="0.01"></label>
+<label>Quoted labor ($)<input name="quotedLabor" type="number" inputmode="decimal" min="0" max="1000000" step="0.01"></label>
+<label>Actual parts cost ($)<input name="supplierPartsCost" type="number" inputmode="decimal" min="0" max="1000000" step="0.01"></label>
+<label>Final charged total ($)<input name="finalCharged" type="number" inputmode="decimal" min="0" max="1000000" step="0.01"></label>
+<label>Payment status
+<select name="paymentStatus">
+<option value="not_recorded">Not recorded</option>
+<option value="unpaid">Unpaid</option>
+<option value="partially_paid">Partially paid</option>
+<option value="paid">Paid (staff recorded)</option>
+</select></label>
 </div>
 <button class="primary full" type="submit">Save customer request</button>
 <p id="add-message" class="message" role="status">

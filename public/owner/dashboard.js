@@ -13,7 +13,28 @@ let pendingDeepLink=requestedReference,pendingRecordId=initialRecordId;
 const initialSection=params.get('view')||((requestedReference||initialRecordId)?'leads':'overview');if(params.has('activate')){activation={token:params.get('activate'),email:params.get('email')||''};history.replaceState(null,'',location.pathname);$('login-email').value=activation.email;$('login-email').readOnly=true;$('login-password').autocomplete='new-password';$('confirm-label').hidden=false;$('confirm-password').required=true;msg('login-title','Set up your account.');msg('login-submit','Create password & sign in');msg('login-subtitle','Choose a private password of at least 12 characters. Your activation link can be used once.');}
 function showLogin(){activation=null;closeCrmNav();$('login-email').readOnly=false;$('confirm-label').hidden=true;$('confirm-password').required=false;$('login-password').autocomplete='current-password';msg('login-title','Welcome back.');msg('login-submit','Sign in');$('login-screen').hidden=false;$('dashboard-screen').hidden=true;$('signout').hidden=true;jobs=[];selected=null;$('jobs-list').replaceChildren();$('detail-media').replaceChildren();}
 function showDashboard(email){ownerEmail=email;$('telegram-test').hidden=email!=='joshmobileinc@gmail.com';$('phone-alert-settings').hidden=email!=='joshmobileinc@gmail.com';activation=null;$('login-screen').hidden=true;$('dashboard-screen').hidden=false;$('signout').hidden=false;msg('admin-email',email);msg('today-date',new Date().toLocaleDateString('en-US',{timeZone:'America/New_York',weekday:'long',month:'long',day:'numeric'})+' · Eastern time');setSection(sectionConfig[initialSection]?initialSection:'overview','replace');if(email==='joshmobileinc@gmail.com')refreshPushStatus();load();}
-function dirty(){if(!selected||$('job-detail').hidden)return false;return [['job-status-input',selected.status],['job-confirmed-at',easternInput(selected.appointmentAt)],['job-duration',String(selected.durationMinutes||60)],['job-vin-input',selected.vin||''],['job-address-input',selected.address||''],['job-city-input',selected.city||''],['job-notes',selected.privateNotes||''],['job-parts',selected.partsTools||''],['communication-text','']].some(([id,value])=>String($(id)?.value||'')!==String(value));}
+const currencyInput=value=>Number.isSafeInteger(value)?(value/100).toFixed(2):'';
+const currencyDisplay=value=>Number.isSafeInteger(value)?new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(value/100):'Not quoted';
+function updateQuoteTotal(){
+ const parts=$('quoted-parts').value.trim(),labor=$('quoted-labor').value.trim();
+ const a=parts===''?0:Number(parts),b=labor===''?0:Number(labor);
+ msg('quote-total',parts===''&&labor===''?'Not quoted':Number.isFinite(a+b)?new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(a+b):'Check amounts');
+}
+function dirty(){
+ if(!selected||$('job-detail').hidden||$('job-form').hidden)return false;
+ const j=selected;
+ const values=[['job-status-input',j.status],['job-confirmed-at',easternInput(j.appointmentAt)],
+ ['job-duration',String(j.durationMinutes||60)],['edit-name',j.name||''],['edit-phone',j.phone||''],
+ ['edit-email',j.email||''],['edit-year',j.year||''],['edit-make',j.make||''],
+ ['edit-model',j.model||''],['edit-service',j.service||''],['edit-description',j.description||''],
+ ['edit-preferred-date',j.date||''],['edit-preferred-time',j.time||''],
+ ['job-vin-input',j.vin||''],['job-address-input',j.address||''],['job-city-input',j.city||''],
+ ['job-notes',j.privateNotes||''],['job-parts',j.partsTools||''],
+ ['quoted-parts',currencyInput(j.quotedPartsCents)],['quoted-labor',currencyInput(j.quotedLaborCents)],
+ ['supplier-parts-cost',currencyInput(j.supplierPartsCostCents)],['final-charged',currencyInput(j.finalChargedCents)],
+ ['payment-status',j.paymentStatus||'not_recorded'],['communication-text','']];
+ return values.some(([id,value])=>String($(id)?.value||'')!==String(value));
+}
 function live(text){msg('live-status',text);}
 function chime(){if(!soundAllowed||!window.AudioContext)return;try{const context=new AudioContext(),oscillator=context.createOscillator(),gain=context.createGain();oscillator.frequency.value=880;gain.gain.setValueAtTime(.035,context.currentTime);oscillator.connect(gain).connect(context.destination);oscillator.start();oscillator.stop(context.currentTime+.08);}catch{}}
 async function load({automatic=false}={}){try{const currentId=selected?.id,keepDirty=automatic&&dirty(),previousRequests=new Set(jobs.filter(j=>j.status==='requested').map(j=>j.id)),result=await api('jobs');jobs=result.jobs||[];markerRevision=Number(result.marker?.revision||markerRevision);const fresh=jobs.filter(j=>j.status==='requested'&&!previousRequests.has(j.id));if(automatic&&fresh.length){unreadNew+=fresh.length;chime();}seenRequested=new Set(jobs.filter(j=>j.status==='requested').map(j=>j.id));render();if(currentId&&!keepDirty){const next=jobs.find(j=>j.id===currentId);if(next)choose(next.id);else returnToList('replace');}if(pendingDeepLink&&!selected){const requested=jobs.find(j=>j.reference===pendingDeepLink&&!j.deletedAt);if(requested){choose(requested.id);syncNav('replace',requested.id,false);pendingDeepLink='';}}
@@ -110,7 +131,17 @@ function choose(id,writeHistory=false){
  msg('job-status',j.status==='requested'?'New request':j.status);$('job-status').className='status '+j.status;
  const details={'detail-name':j.name,'detail-phone':j.phone,'detail-email':j.email||'Not provided','detail-address':[j.address,j.city].filter(Boolean).join(', ')||'Location not provided','detail-car':[j.year,j.make,j.model].filter(Boolean).join(' ')||'Vehicle details pending','detail-vin':j.vin||'Needed before confirmation','detail-description':j.description||'No work description provided.','detail-preferred':'Requested: '+(j.date||'Flexible')+' · '+(j.time||'Flexible')+' · '+(j.locationType||'Mobile service')};
  for(const [key,value]of Object.entries(details))msg(key,value);
- $('job-status-input').value=j.status;$('job-confirmed-at').value=easternInput(j.appointmentAt);$('job-duration').value=j.durationMinutes||60;$('job-vin-input').value=j.vin||'';$('job-address-input').value=j.address||'';$('job-city-input').value=j.city||'';$('job-notes').value=j.privateNotes||'';$('job-parts').value=j.partsTools||'';
+ $('job-status-input').value=j.status;$('job-confirmed-at').value=easternInput(j.appointmentAt);$('job-duration').value=j.durationMinutes||60;
+ $('edit-name').value=j.name||'';$('edit-phone').value=j.phone||'';$('edit-email').value=j.email||'';
+ $('edit-year').value=j.year||'';$('edit-make').value=j.make||'';$('edit-model').value=j.model||'';
+ $('edit-service').value=j.service||'';$('edit-description').value=j.description||'';
+ $('edit-preferred-date').value=j.date||'';$('edit-preferred-time').value=j.time||'';
+ $('job-vin-input').value=j.vin||'';$('job-address-input').value=j.address||'';$('job-city-input').value=j.city||'';
+ $('job-notes').value=j.privateNotes||'';$('job-parts').value=j.partsTools||'';
+ $('quoted-parts').value=currencyInput(j.quotedPartsCents);$('quoted-labor').value=currencyInput(j.quotedLaborCents);
+ $('supplier-parts-cost').value=currencyInput(j.supplierPartsCostCents);$('final-charged').value=currencyInput(j.finalChargedCents);
+ $('payment-status').value=j.paymentStatus||'not_recorded';updateQuoteTotal();
+ msg('fitment-summary',[j.year,j.make,j.model,j.vin?'VIN '+j.vin:'VIN not yet recorded',services[j.service]||j.service].filter(Boolean).join(' · '));
  const phone=(j.normalizedPhone||j.phone).replace(/[^+\d]/g,''),digits=phone.replace(/\D/g,''),reference=j.reference||j.id,followup='Hi '+j.name+', following up on your Josh Mobile request '+reference+'.';
  $('call-customer').href='tel:'+phone;$('text-customer').href='sms:'+phone+'?body='+encodeURIComponent(followup);$('whatsapp-customer').href='https://wa.me/'+digits+'?text='+encodeURIComponent(followup);
  $('map-customer').href='https://www.google.com/maps/search/?api=1&query='+encodeURIComponent([j.address,j.city].filter(Boolean).join(', '));
@@ -196,11 +227,50 @@ window.addEventListener('resize',()=>{const mobile=matchMedia('(max-width: 900px
 async function refreshPushRequestStatus(id){if(ownerEmail!=='joshmobileinc@gmail.com')return;try{const response=await fetch('/api/admin?action=push-request-status&id='+encodeURIComponent(id),{credentials:'same-origin',cache:'no-store'});const data=await response.json();if(!response.ok)throw new Error(data.error||'Request failed.');const state=data.push;const detail=ownerPushState?.enabled?state.state:'not_active';const words={not_active:'Phone alert NOT ACTIVE until Josh completes VAPID setup and opts in.',no_subscriptions:'No opted-in phone is registered.',not_found:'Request not found.',not_attempted:'Phone alert has not been attempted for this request.',sending:'Phone alert is being sent.',accepted:'Push provider accepted this alert; phone receipt is not confirmed.',failed:'Phone alert failed for at least one device.'};msg('detail-push-status',words[detail]||'Phone alert status: '+detail+'.');$('retry-phone-alert').hidden=detail!=='failed';$('retry-phone-alert').dataset.id=id;}catch(error){msg('detail-push-status','Phone alert status unavailable.');$('retry-phone-alert').hidden=true;}}
 $('retry-phone-alert').onclick=async()=>{const button=$('retry-phone-alert');button.disabled=true;try{const result=await api('push-retry','POST',{id:button.dataset.id});msg('detail-push-status',`Phone push retry: ${result.result.accepted} accepted by provider. Phone receipt is not confirmed.`);await refreshPushRequestStatus(button.dataset.id);}catch(error){msg('detail-push-status',error.message);}finally{button.disabled=false;}};
 $('retry-alert').onclick=async()=>{if(!selected)return;$('retry-alert').disabled=true;try{const result=await api('retry-notification','POST',{id:selected.id});msg('detail-alert-status',result.notification?.attempted?'Owner alert retry submitted; provider acceptance is not inbox delivery.':'Owner alert retry is waiting for its retry window.');await load();}catch(error){msg('detail-alert-status',error.message);}finally{$('retry-alert').disabled=false;}};
-$('job-form').onsubmit=async e=>{e.preventDefault();if(!selected)return;$('save-job').disabled=true;try{const r=await api('update','POST',{id:selected.id,version:selected.version,status:$('job-status-input').value,appointmentAt:easternISO($('job-confirmed-at').value),durationMinutes:Number($('job-duration').value),vin:$('job-vin-input').value,address:$('job-address-input').value,city:$('job-city-input').value,privateNotes:$('job-notes').value,partsTools:$('job-parts').value});jobs=jobs.map(j=>j.id===r.job.id?r.job:j);choose(r.job.id);msg('save-message','Saved. Text the customer to confirm any appointment changes.');}catch(err){msg('save-message',err.message);}finally{$('save-job').disabled=false;}};
+$('job-form').onsubmit=async event=>{
+ event.preventDefault();if(!selected)return;
+ $('save-job').disabled=true;
+ try{
+  const body={id:selected.id,version:selected.version,status:$('job-status-input').value,
+   appointmentAt:easternISO($('job-confirmed-at').value),durationMinutes:Number($('job-duration').value),
+   name:$('edit-name').value,phone:$('edit-phone').value,email:$('edit-email').value,
+   year:$('edit-year').value,make:$('edit-make').value,model:$('edit-model').value,
+   service:$('edit-service').value,description:$('edit-description').value,
+   date:$('edit-preferred-date').value,time:$('edit-preferred-time').value,
+   vin:$('job-vin-input').value,address:$('job-address-input').value,city:$('job-city-input').value,
+   privateNotes:$('job-notes').value,partsTools:$('job-parts').value,
+   quotedParts:$('quoted-parts').value,quotedLabor:$('quoted-labor').value,
+   supplierPartsCost:$('supplier-parts-cost').value,finalCharged:$('final-charged').value,
+   paymentStatus:$('payment-status').value};
+  const result=await api('update','POST',body);
+  jobs=jobs.map(j=>j.id===result.job.id?result.job:j);
+  choose(result.job.id);msg('save-message','Customer, appointment, and pricing changes saved.');
+ }catch(error){msg('save-message',error.message);}
+ finally{$('save-job').disabled=false;}
+};
+$('quoted-parts').addEventListener('input',updateQuoteTotal);
+$('quoted-labor').addEventListener('input',updateQuoteTotal);
+$('copy-fitment').onclick=async()=>{
+ if(!selected)return;
+ const value=[selected.year,selected.make,selected.model,'VIN: '+(selected.vin||'not recorded'),'Service: '+(services[selected.service]||selected.service||'not specified')].filter(Boolean).join(' · ');
+ try{await navigator.clipboard.writeText(value);msg('fitment-copy-status','Vehicle details copied. Verify part fitment in your supplier account.');}
+ catch{msg('fitment-copy-status',value);}
+};
 $('communication-form').onsubmit=async e=>{e.preventDefault();if(!selected)return;try{const r=await api('message','POST',{id:selected.id,version:selected.version,channel:$('communication-type').value,text:$('communication-text').value});jobs=jobs.map(j=>j.id===r.job.id?r.job:j);choose(r.job.id);$('communication-text').value='';msg('communication-message','Conversation note saved.');}catch(err){msg('communication-message',err.message);}};
 $('new-job-btn').onclick=()=>{if(dirty()){msg('save-message','Save the current dossier edits before adding another job.');return;}$('add-dialog').showModal();};
 $('close-dialog').onclick=()=>$('add-dialog').close();
-$('add-job-form').onsubmit=async e=>{e.preventDefault();try{const r=await api('create','POST',Object.fromEntries(new FormData(e.target)));e.target.reset();$('add-dialog').close();setSection('jobs');await load();choose(r.id);}catch(err){msg('add-message',err.message);}};
+$('add-job-form').onsubmit=async event=>{
+ event.preventDefault();
+ const button=event.submitter;if(button)button.disabled=true;
+ try{
+  const data=Object.fromEntries(new FormData(event.target));
+  if(data.appointmentAt)data.appointmentAt=easternISO(data.appointmentAt);
+  const r=await api('create','POST',data);
+  event.target.reset();$('add-dialog').close();
+  setSection('jobs');await load();choose(r.id,true);
+ }catch(error){msg('add-message',error.message);}
+ finally{if(button)button.disabled=false;}
+};
 $('change-password-form').onsubmit=async e=>{e.preventDefault();try{await api('change-password','POST',{oldPassword:$('old-password').value,newPassword:$('new-password').value});e.target.reset();showLogin();msg('login-message','Password changed. Please sign in again.');}catch(err){msg('password-message',err.message);}};
 $('telegram-test').onclick=async()=>{const button=$('telegram-test');button.disabled=true;try{const result=await api('telegram-test','POST',{});msg('telegram-test-status','Telegram test: '+result.telegram.state+'.');}catch(e){msg('telegram-test-status',e.message);}finally{button.disabled=false;}};
 function pushKeyBytes(value){const raw=atob(value.replace(/-/g,'+').replace(/_/g,'/')+'='.repeat((4-value.length%4)%4));return Uint8Array.from(raw,c=>c.charCodeAt(0));}
