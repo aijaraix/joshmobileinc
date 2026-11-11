@@ -85,7 +85,7 @@
 <button type="button" data-section="messages"><span>Messages & Follow-ups</span></button>
 <button type="button" data-section="availability"><span>Availability</span></button>
 <button type="button" data-section="settings"><span>Settings</span></button>
-<button type="button" class="future-module" disabled aria-disabled="true"><span>Parts & Suppliers</span><small>Planned for next week</small></button>
+<button type="button" data-section="parts"><span>Parts & Suppliers</span></button>
 </nav>
 <div class="crm-sidebar-foot">Josh Mobile Inc.<small>North Broward · Eastern Time</small></div>
 </aside>
@@ -105,7 +105,8 @@
 <span id="live-status" class="signed-in" role="status">Checking for new requests…</span>
 <button id="telegram-test" class="outline" type="button" hidden>Send Telegram test</button>
 <span id="telegram-test-status" class="signed-in" role="status"></span>
-<button id="new-job-btn" class="primary" type="button">＋ Add customer / job</button>
+<button id="new-customer-btn" class="outline" type="button">＋ Add customer</button>
+<button id="new-job-btn" class="primary" type="button">＋ Add appointment / job</button>
 </div>
 </div>
 <section id="overview-view" class="module-pane" aria-label="Overview">
@@ -214,6 +215,14 @@
 </div>
 </div>
 </div>
+<section id="customer-profile-block" class="detail-block customer-profile-block" hidden>
+<div class="section-actions">
+<div><h3>Customer profile &amp; vehicles</h3><p id="customer-profile-summary" class="subtle"></p></div>
+<div class="inline-actions"><button id="edit-customer-profile" class="outline" type="button">Edit customer</button><button id="add-vehicle-btn" class="outline" type="button">＋ Vehicle</button></div>
+</div>
+<p id="customer-preferences" class="subtle"></p>
+<div id="customer-vehicles" class="vehicle-list" aria-live="polite"></div>
+</section>
 <div class="contact-history detail-block">
 <h3>Other records for this contact</h3>
 <p class="subtle">Each JM request remains a separate job record. Records below share this exact contact phone number.</p>
@@ -248,7 +257,13 @@
 <label>Vehicle year<input id="edit-year" maxlength="4" inputmode="numeric"></label>
 <label>Make<input id="edit-make" maxlength="60"></label>
 <label>Model<input id="edit-model" maxlength="80"></label>
-<label class="wide">Service needed / performed<input id="edit-service" maxlength="100"></label>
+<label>Trim <small>(optional)</small><input id="edit-trim" maxlength="80"></label>
+<label>Engine <small>(optional)</small><input id="edit-engine" maxlength="100"></label>
+<label>Mileage <small>(optional)</small><input id="edit-mileage" type="number" inputmode="numeric" min="0" max="2000000" step="1"></label>
+<label>License plate <small>(optional)</small><input id="edit-license-plate" maxlength="20" autocapitalize="characters"></label>
+<label class="wide">Vehicle record<select id="edit-vehicle-id"><option value="">Use this job's vehicle details</option></select></label>
+<label class="wide">Vehicle notes<textarea id="edit-vehicle-notes" maxlength="4000" rows="2" placeholder="Color, access notes, equipment, or vehicle-specific reminders…"></textarea></label>
+<label class="wide">Service needed / performed<input id="edit-service" list="service-catalog-options" maxlength="100"></label>
 <label class="wide">Service description<textarea id="edit-description" maxlength="1800" rows="3"></textarea></label>
 <label>Requested date<input id="edit-preferred-date" type="date"></label>
 <label>Requested time or window<input id="edit-preferred-time" maxlength="40"></label>
@@ -260,16 +275,19 @@
 <label>Status<select id="job-status-input" name="status">
 <option value="requested">New request</option>
 <option value="confirmed">Confirmed</option>
+<option value="scheduled">Scheduled</option>
+<option value="in_progress">In progress</option>
 <option value="completed">Completed</option>
 <option value="cancelled">Cancelled</option>
+<option value="no_show">No show</option>
 </select>
 </label>
-<label>Confirmed date & time <small>(Eastern)</small>
+<label>Appointment / actual service date & time <small>(Eastern)</small>
 <input id="job-confirmed-at" type="datetime-local">
 </label>
 <label>Duration (minutes)<input id="job-duration" type="number" min="30" max="480" step="15" value="60" required>
 </label>
-<label class="wide">VIN (required before confirming)<input id="job-vin-input" maxlength="17" minlength="17" autocapitalize="characters" autocomplete="off" pattern="[A-HJ-NPR-Za-hj-npr-z0-9]{17}">
+<label class="wide">VIN <small>(optional; verify fitment before parts quotes)</small><input id="job-vin-input" maxlength="17" minlength="17" autocapitalize="characters" autocomplete="off" pattern="[A-HJ-NPR-Za-hj-npr-z0-9]{17}">
 </label>
 <label class="wide">Address / work location<input id="job-address-input" maxlength="240" required>
 </label>
@@ -289,8 +307,14 @@
 <label>Quoted parts ($)<input id="quoted-parts" type="number" inputmode="decimal" min="0" max="1000000" step="0.01" placeholder="0.00"></label>
 <label>Quoted labor ($)<input id="quoted-labor" type="number" inputmode="decimal" min="0" max="1000000" step="0.01" placeholder="0.00"></label>
 <div class="wide price-summary" aria-live="polite">Parts + labor quoted subtotal: <strong id="quote-total">Not quoted</strong></div>
+<label>Parts charge ($)<input id="parts-charge" type="number" inputmode="decimal" min="0" max="1000000" step="0.01" placeholder="Optional job override"></label>
+<label>Labor charge ($)<input id="labor-charge" type="number" inputmode="decimal" min="0" max="1000000" step="0.01" placeholder="Optional job override"></label>
+<label>Additional fees ($)<input id="additional-fees" type="number" inputmode="decimal" min="0" max="1000000" step="0.01" placeholder="0.00"></label>
+<label>Discount ($)<input id="discount" type="number" inputmode="decimal" min="0" max="1000000" step="0.01" placeholder="0.00"></label>
+<label>Tax ($)<input id="tax" type="number" inputmode="decimal" min="0" max="1000000" step="0.01" placeholder="0.00"></label>
 <label>Actual cost of parts ($)<input id="supplier-parts-cost" type="number" inputmode="decimal" min="0" max="1000000" step="0.01" placeholder="0.00"></label>
 <label>Final total charged ($)<input id="final-charged" type="number" inputmode="decimal" min="0" max="1000000" step="0.01" placeholder="0.00"></label>
+<label>Amount paid ($)<input id="amount-paid" type="number" inputmode="decimal" min="0" max="1000000" step="0.01" placeholder="0.00"></label>
 <label>Payment record
 <select id="payment-status">
 <option value="not_recorded">Not recorded</option>
@@ -298,6 +322,7 @@
 <option value="partially_paid">Partially paid</option>
 <option value="paid">Paid (staff recorded)</option>
 </select></label>
+<div class="wide price-summary" aria-live="polite">Final job total: <strong id="final-job-total">Not recorded</strong> <span>Outstanding: <strong id="outstanding-balance">Not recorded</strong></span></div>
 </div>
 </div>
 <button class="primary" id="save-job" type="submit">Save job details</button>
@@ -310,6 +335,7 @@
 <p class="subtle">Use the vehicle/VIN to identify compatible parts in your own supplier account. Prices and availability are not connected to Josh Mobile yet. Verify fitment, trim, and part number before quoting.</p>
 <p id="fitment-summary" class="fitment-summary"></p>
 <button id="copy-fitment" class="outline" type="button">Copy vehicle details</button>
+<button id="create-parts-request" class="primary" type="button">Create parts lookup task</button>
 <div class="supplier-links">
 <a href="https://app.partstech.com/" target="_blank" rel="noopener noreferrer">PartsTech ↗</a>
 <a href="https://www.oreillypro.com/login" target="_blank" rel="noopener noreferrer">O'Reilly Pro ↗</a>
@@ -317,6 +343,7 @@
 <a href="https://www.autozonepro.com/" target="_blank" rel="noopener noreferrer">AutoZone Pro ↗</a>
 </div>
 <p id="fitment-copy-status" class="message" role="status" aria-live="polite"></p>
+<div id="job-parts-requests" class="parts-inline-list"></div>
 </section>
 <section class="detail-block">
 <h3>Conversation & job history</h3>
@@ -339,6 +366,53 @@
 <div id="timeline">
 </div>
 </section>
+</div>
+</section>
+</div>
+</section>
+<section id="parts-view" class="module-pane" hidden aria-label="Parts and suppliers">
+<div class="records-heading"><div><button class="overview-return" type="button" data-go-section="overview">← Overview</button><h2>Parts &amp; Suppliers</h2><p class="subtle">Manual research only. No supplier account, inventory feed, order, or customer message is connected here.</p></div></div>
+<div class="workspace-grid parts-grid">
+<section class="list-panel">
+<div class="panel-top"><div><h2>Lookup tasks</h2><p class="subtle">Open a task to record verified fitment and a manual quote.</p></div></div>
+<div id="parts-list" class="job-list" aria-live="polite"></div>
+</section>
+<section class="detail-panel" id="parts-detail-panel">
+<button id="back-to-parts-list" class="outline back-to-list" type="button" hidden>← Back to lookup tasks</button>
+<div id="empty-parts-detail" class="empty-detail"><div class="empty-symbol">◫</div><h2>No parts task selected</h2><p>Open a customer job, then create a parts lookup task when replacement parts are needed.</p></div>
+<div id="parts-detail" hidden>
+<div class="detail-heading"><div><span id="parts-status" class="status"></span><h2 id="parts-title"></h2><p id="parts-vehicle" class="subtle"></p></div></div>
+<p id="parts-readiness" class="fitment-summary"></p>
+<form id="parts-form" class="detail-block">
+<h3>Parts request</h3>
+<div class="form-grid">
+<label>Requested part / service<input id="parts-requested-part" maxlength="160" required></label>
+<label>Part category<input id="parts-category" maxlength="100"></label>
+<label>OEM part number <small>(optional)</small><input id="parts-oem" maxlength="100"></label>
+<label>Aftermarket part number <small>(optional)</small><input id="parts-aftermarket" maxlength="100"></label>
+<label>Quantity<input id="parts-quantity" type="number" min="1" max="100" step="1" required></label>
+<label>Compatibility<select id="parts-compatibility"><option value="not_checked">Not checked</option><option value="needs_vehicle_details">Needs vehicle details</option><option value="unverified">Unverified</option><option value="verified_by_josh">Verified by Josh</option><option value="not_compatible">Not compatible</option></select></label>
+<label>Status<select id="parts-request-status"><option value="draft">Draft</option><option value="lookup_needed">Lookup needed</option><option value="researching">Researching</option><option value="quoted">Quoted</option><option value="approved">Approved</option><option value="ordered">Ordered</option><option value="received">Received</option><option value="cancelled">Cancelled</option></select></label>
+<label>Labor for estimate ($) <small>(optional)</small><input id="parts-labor" type="number" inputmode="decimal" min="0" max="1000000" step="0.01"></label>
+<label class="wide">Internal notes<textarea id="parts-notes" rows="3" maxlength="6000"></textarea></label>
+</div>
+<button class="primary" type="submit">Save parts task</button><p id="parts-save-message" class="message" role="status"></p>
+</form>
+<section class="detail-block">
+<h3>Manual supplier quote</h3><p class="subtle">Enter only a price and availability Josh actually researched. This does not fetch, order, or claim compatibility.</p>
+<form id="supplier-quote-form"><div class="form-grid">
+<label>Supplier<input id="quote-supplier" maxlength="120"></label>
+<label>Supplier SKU <small>(optional)</small><input id="quote-sku" maxlength="120"></label>
+<label>Part number <small>(optional)</small><input id="quote-part-number" maxlength="100"></label>
+<label>Supplier price ($)<input id="quote-supplier-price" type="number" inputmode="decimal" min="0" max="1000000" step="0.01"></label>
+<label>Retail price ($) <small>(optional)</small><input id="quote-retail-price" type="number" inputmode="decimal" min="0" max="1000000" step="0.01"></label>
+<label>Availability<input id="quote-availability" maxlength="240" placeholder="In stock, 2 days, call store…"></label>
+<label class="wide">Supplier source URL <small>(optional)</small><input id="quote-source-url" type="url" maxlength="2048" placeholder="https://…"></label>
+<label class="wide">Quote notes<textarea id="quote-notes" rows="2" maxlength="4000"></textarea></label>
+</div><button class="outline" type="submit">Save researched quote</button><p id="quote-save-message" class="message" role="status"></p></form>
+<div id="parts-quotes" class="quote-list"></div>
+</section>
+<section class="detail-block"><h3>Estimate approval</h3><p id="parts-estimate" class="fitment-summary"></p><button id="approve-parts-estimate" class="primary" type="button">Approve for manual customer discussion</button><p class="subtle">Only Josh can approve an estimate. Approval sends no message and never charges or orders anything.</p></section>
 </div>
 </section>
 </div>
@@ -383,6 +457,22 @@
 <p class="subtle">iPhone/iPad: Share → Add to Home Screen, open the installed app, then allow notifications. Requires iOS/iPadOS 16.4 or newer. Android: install from the browser menu, then allow notifications. The screen message contains only a JM request reference; sign-in is still required to see customer details.</p>
 </div>
 </details>
+<details class="account-settings" id="pricing-settings">
+<summary>Service catalog &amp; parts estimate defaults</summary>
+<div class="owner-card">
+<p class="subtle">Default prices help start a new job; saved jobs keep their own price snapshot. These settings do not create invoices, taxes, charges, supplier orders, or customer messages.</p>
+<form id="parts-pricing-settings-form" class="form-grid">
+<label>Parts markup (%) <small>(optional)</small><input id="parts-markup-percent" type="number" inputmode="decimal" min="0" max="500" step="0.01" placeholder="e.g. 25"></label>
+<label>Default labor for parts estimate ($) <small>(optional)</small><input id="parts-default-labor" type="number" inputmode="decimal" min="0" max="1000000" step="0.01"></label>
+<div class="wide"><button class="outline" type="submit">Save parts estimate defaults</button><p id="parts-settings-message" class="message" role="status"></p></div>
+</form>
+<form id="service-catalog-form">
+<div id="service-catalog-list" class="service-catalog-list"></div>
+<div class="inline-actions"><button id="add-service-catalog-item" class="outline" type="button">＋ Service</button><button class="primary" type="submit">Save service catalog</button></div>
+<p id="service-catalog-message" class="message" role="status"></p>
+</form>
+</div>
+</details>
 <details class="account-settings">
 <summary>Account security</summary>
 <form id="change-password-form">
@@ -419,11 +509,13 @@
 <dialog id="add-dialog">
 <form id="add-job-form">
 <div class="modal-head">
-<h2>New job / customer</h2>
+<h2>New appointment / job</h2>
 <button type="button" class="icon-button" id="close-dialog" aria-label="Close">×</button>
 </div>
-<p class="subtle">Create a customer/request with just name and phone, or record a past completed job. VIN and service address are required when confirming a future appointment.</p>
+<p class="subtle">Choose an existing customer or enter a new caller. You can record a past completed job using its actual service date. A VIN is optional; do not quote fitment-sensitive parts until it is verified.</p>
 <div class="form-grid">
+<label class="wide">Existing customer <small>(optional)</small><select name="customerId" id="manual-customer-id"><option value="">Create or match by exact contact details</option></select></label>
+<label class="wide">Existing vehicle <small>(optional)</small><select name="vehicleId" id="manual-vehicle-id"><option value="">Create or match from the vehicle details below</option></select></label>
 <label>Customer name<input name="name" required maxlength="90">
 </label>
 <label>Phone<input name="phone" type="tel" required maxlength="30">
@@ -436,13 +528,22 @@
 </label>
 <label>Model<input name="model" maxlength="80">
 </label>
+<label>Trim<input name="trim" maxlength="80">
+</label>
+<label>Engine<input name="engine" maxlength="100">
+</label>
+<label>Mileage<input name="mileage" type="number" inputmode="numeric" min="0" max="2000000" step="1">
+</label>
+<label>License plate<input name="licensePlate" maxlength="20" autocapitalize="characters">
+</label>
 <label class="wide">VIN<input name="vin" maxlength="17" minlength="17" placeholder="17 characters">
 </label>
+<label class="wide">Vehicle notes<textarea name="vehicleNotes" rows="2" maxlength="4000"></textarea></label>
 <label class="wide">Street address<input name="address" maxlength="240" autocomplete="street-address">
 </label>
 <label class="wide">City / ZIP<input name="city" maxlength="100">
 </label>
-<label class="wide">Service<input name="service" required maxlength="100" placeholder="Brake pads and rotors">
+<label class="wide">Service<input name="service" list="service-catalog-options" required maxlength="100" placeholder="Brake pads and rotors">
 </label>
 <label class="wide">Job details<textarea name="description" rows="3" maxlength="1800">
 </textarea>
@@ -456,6 +557,7 @@
 <option value="requested">New customer / service request</option>
 <option value="completed">Past completed job (historical)</option>
 </select></label>
+<label>Appointment status<select name="status"><option value="requested">Requested</option><option value="confirmed">Confirmed</option><option value="scheduled">Scheduled</option><option value="in_progress">In progress</option><option value="completed">Completed</option><option value="cancelled">Cancelled</option><option value="no_show">No show</option></select></label>
 <label>Actual past appointment <small>(Eastern; for completed job)</small>
 <input name="appointmentAt" type="datetime-local" id="manual-appointment-at"></label>
 <label>Duration (minutes)<input name="durationMinutes" type="number" min="30" max="480" step="15" value="60"></label>
@@ -463,6 +565,7 @@
 <label>Quoted labor ($)<input name="quotedLabor" type="number" inputmode="decimal" min="0" max="1000000" step="0.01"></label>
 <label>Actual parts cost ($)<input name="supplierPartsCost" type="number" inputmode="decimal" min="0" max="1000000" step="0.01"></label>
 <label>Final charged total ($)<input name="finalCharged" type="number" inputmode="decimal" min="0" max="1000000" step="0.01"></label>
+<label>Amount paid ($)<input name="amountPaid" type="number" inputmode="decimal" min="0" max="1000000" step="0.01"></label>
 <label>Payment status
 <select name="paymentStatus">
 <option value="not_recorded">Not recorded</option>
@@ -476,6 +579,25 @@
 </p>
 </form>
 </dialog>
+<dialog id="customer-dialog" aria-labelledby="customer-dialog-title">
+<form id="customer-form"><div class="modal-head"><h2 id="customer-dialog-title">Add customer</h2><button type="button" class="icon-button" id="close-customer-dialog" aria-label="Close">×</button></div>
+<p class="subtle">Save a customer even when there is no website request or appointment yet. Exact phone/email matching prevents accidental duplicates.</p>
+<div class="form-grid"><label>Customer name<input id="customer-name" maxlength="90" required></label><label>Phone <small>(or email)</small><input id="customer-phone" type="tel" maxlength="30"></label><label class="wide">Email <small>(or phone)</small><input id="customer-email" type="email" maxlength="160"></label><label class="wide">Default address<input id="customer-address" maxlength="240"></label><label>City / ZIP<input id="customer-city" maxlength="100"></label><label>Customer status<select id="customer-status"><option value="active">Active</option><option value="archived">Archived</option></select></label><label class="wide">Private internal notes<textarea id="customer-notes" rows="3" maxlength="6000"></textarea></label><label class="wide">Preferences<textarea id="customer-preferences-input" rows="2" maxlength="2000" placeholder="Preferred visit days, gate details, etc."></textarea></label><label class="wide">Communication instructions<textarea id="customer-communication" rows="2" maxlength="2000" placeholder="Call before arrival, text only, language preference…"></textarea></label></div>
+<div class="inline-actions"><button class="primary" type="submit">Save customer</button><button id="archive-customer-btn" class="outline destructive" type="button" hidden>Archive customer</button></div><p id="customer-form-message" class="message" role="status"></p></form>
+</dialog>
+<dialog id="vehicle-dialog" aria-labelledby="vehicle-dialog-title">
+<form id="vehicle-form"><div class="modal-head"><h2 id="vehicle-dialog-title">Add vehicle</h2><button type="button" class="icon-button" id="close-vehicle-dialog" aria-label="Close">×</button></div>
+<p class="subtle">VIN is optional. Save only vehicle details you know; Josh must verify part fitment before a final price.</p>
+<div class="form-grid"><label>Vehicle year<input id="vehicle-year" maxlength="4" inputmode="numeric"></label><label>Make<input id="vehicle-make" maxlength="60"></label><label>Model<input id="vehicle-model" maxlength="80"></label><label>Trim<input id="vehicle-trim" maxlength="80"></label><label>Engine<input id="vehicle-engine" maxlength="100"></label><label>Mileage<input id="vehicle-mileage" type="number" inputmode="numeric" min="0" max="2000000" step="1"></label><label>License plate<input id="vehicle-license-plate" maxlength="20" autocapitalize="characters"></label><label class="wide">VIN<input id="vehicle-vin" maxlength="17" minlength="17" autocapitalize="characters"></label><label class="wide">Vehicle notes<textarea id="vehicle-notes" rows="3" maxlength="4000"></textarea></label></div>
+<button class="primary" type="submit">Save vehicle</button><p id="vehicle-form-message" class="message" role="status"></p></form>
+</dialog>
+<dialog id="parts-request-dialog" aria-labelledby="parts-request-dialog-title">
+<form id="parts-request-create-form"><div class="modal-head"><h2 id="parts-request-dialog-title">Create parts lookup task</h2><button type="button" class="icon-button" id="close-parts-request-dialog" aria-label="Close">×</button></div>
+<p class="subtle">This saves a private task. It does not look up a supplier, prove compatibility, send a quote, or place an order.</p>
+<div class="form-grid"><label class="wide">Requested part / service<input id="new-parts-requested-part" maxlength="160" required></label><label>Part category<input id="new-parts-category" maxlength="100"></label><label>Quantity<input id="new-parts-quantity" type="number" min="1" max="100" step="1" value="1" required></label><label>Compatibility<select id="new-parts-compatibility"><option value="not_checked">Not checked</option><option value="needs_vehicle_details">Needs vehicle details</option><option value="unverified">Unverified</option></select></label><label class="wide">Internal notes<textarea id="new-parts-notes" rows="3" maxlength="6000"></textarea></label></div>
+<button class="primary" type="submit">Save parts task</button><p id="parts-request-create-message" class="message" role="status"></p></form>
+</dialog>
+<datalist id="service-catalog-options"></datalist>
 <footer>
 <span>Josh Mobile Inc. · Private operations</span>
 <a href="/">Public website ↗</a>
