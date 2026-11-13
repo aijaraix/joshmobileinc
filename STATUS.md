@@ -1,6 +1,6 @@
 # Status
 
-## 2026-11-13 — booking form mobile polish
+## 2026-11-13 — booking form mobile polish follow-up
 
 Ready for owner review on `codex/booking-form-mobile-polish`.
 
@@ -8,15 +8,17 @@ Ready for owner review on `codex/booking-form-mobile-polish`.
   has local suggestions; and standalone Service location uses the full grid
   row.
 - VIN: new public requests require a normalized 17-character VIN with no I, O,
-  or Q. Existing requests and manual CRM vehicles without one remain valid.
-- Owner requests: Josh alone can soft-delete eligible website requests from the
-  list or detail, undo immediately, show deleted records, and restore them.
-  Linked customers, vehicles, jobs, media, and history are preserved.
-- Safety: no notification changes, customer contact, migration, merge, or
-  deployment occurred.
-- Verification: `npm test` passed (86 tests) and `npm run build` passed on
+  or Q. Interior whitespace is removed before uppercase validation in both the
+  browser and server paths. Existing requests and manual CRM vehicles without
+  one remain valid.
+- Owner requests: trash navigation, Show deleted, Delete, Restore, Undo, and
+  Purge are visible only to the owner. A manager cannot render those controls
+  and remains rejected by the API. Linked customers, vehicles, jobs, media, and
+  history are preserved.
+- Safety: no production, DNS, environment, database, notification, billing,
+  runner, workflow, customer-contact, or merge change occurred.
+- Verification: `npm test` passed (87 tests) and `npm run build` passed on
   2026-11-13.
 
-The local browser sandbox prevented 390px screenshot capture because Chromium
-cannot create its required socket. The checked-in synthetic browser harness is
-ready to capture the before/after images in a normal browser-enabled runner.
+Grok Bot owns the SSO-preview 390px screenshots; they were intentionally not
+run from this work order.

@@ -1,6 +1,6 @@
 # Work Order — Booking Form Mobile Polish
 
-**Status:** Follow-up in progress
+**Status:** Follow-up complete; ready for owner review
 **Scope:** Public service-request form and authenticated owner request management only  
 **Safety:** No production deployment, merge, notification changes, customer contact, or public delete API
 
@@ -100,3 +100,14 @@ It does not replace or invoke the older separate permanent-removal control.
   environment variables, notifications, billing, runners, workflows, or any
   deployment setting. Do not chase the known account-level GitHub Actions
   test-build failure. Grok Bot owns the SSO-preview screenshots.
+
+### Completion
+
+- Added a shared browser-only owner-visibility model mirroring `ADMINS[0]`.
+  It hides Trash navigation, Show deleted, list/detail Delete, Restore, Undo,
+  and Purge for a manager; the existing server gate was not changed.
+- `normalizeVin` now removes interior whitespace before uppercasing in the
+  shared/server module and browser module.
+- `npm test` passed with 87 tests and `npm run build` passed on 2026-11-13.
+- The known account-level GitHub Actions test-build failure was intentionally
+  left untouched. Grok Bot owns SSO-preview screenshot capture.
