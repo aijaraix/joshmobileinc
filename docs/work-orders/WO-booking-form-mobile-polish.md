@@ -1,6 +1,6 @@
 # Work Order — Booking Form Mobile Polish
 
-**Status:** In progress  
+**Status:** Implementation complete; ready for owner review
 **Scope:** Public service-request form and authenticated owner request management only  
 **Safety:** No production deployment, merge, notification changes, customer contact, or public delete API
 
@@ -45,3 +45,36 @@ for new requests, and restore safe owner-only request deletion with recovery.
 - Update `STATUS.md`, `SERVER-STEPS.md`, and `LAUNCH-CHECKLIST.md` with the
   implementation, operator implications, and non-deployment status.
 - Address any CodeRabbit review comments before reporting ready for owner review.
+
+## Investigation: why Delete appeared to disappear
+
+Git history shows the soft-delete feature was not removed by the recent V2
+dashboard upgrade. Commit `47a94c9c` introduced the existing detail-only
+control. On the current-main baseline, it was rendered only after opening a
+request detail, only for `requested` or `cancelled` status, and was hidden for
+all other records. There was no action on the request list. On a phone this
+made it look as though the action had disappeared during the dashboard upgrade.
+
+This change restores an explicit **Delete** button on eligible website-request
+rows and in their detail view. Its confirmation dialog moves the request to
+Trash, shows an Undo toast, and adds a Show deleted/Trash filter with Restore.
+It does not replace or invoke the older separate permanent-removal control.
+
+## Storage, safety, and verification
+
+- No migration is needed: job records are additive documents, so `deletedAt`
+  and `deletedBy` are new optional fields. A missing value is treated as active.
+- Legacy jobs without a VIN are not changed or blocked in the owner dashboard;
+  manually created CRM vehicles may still omit a VIN.
+- The soft-delete endpoint is owner-only, same-origin protected, and accepts
+  website-originated requests only. It leaves linked customer, vehicle, other
+  job, media, and history records intact.
+- `npm test` passed with 86 tests on 2026-11-13. Coverage includes client and
+  server VIN validation, uppercase normalization, public delete-method denial,
+  owner-only trash/restore, and linked-record preservation.
+- `npm run build` passed on 2026-11-13.
+- The synthetic phone harness now checks 360, 390, and 414 px widths and is
+  prepared to write `mobile-390-before.png` and `mobile-390-after.png`. The
+  managed sandbox blocks Chromium from creating its required local socket, so
+  those local screenshots could not be captured in this workspace. No live site
+  or customer record was accessed.

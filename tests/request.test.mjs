@@ -50,4 +50,5 @@ test('mobile intake has local make suggestions, an exact VIN helper, and focus-s
  assert.match(app,/visualViewport\.addEventListener\('resize'/);
  assert.match(app,/scrollIntoView\(\{block:'center'/);
  assert.match(css,/scroll-margin-block:9rem/);
+ assert.match(css,/\.field-grid \.full\{grid-column:1\/-1\}/);
 });
