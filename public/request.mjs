@@ -4,6 +4,9 @@ export function easternToday(date = new Date()) {
   const parts = new Intl.DateTimeFormat('en-US',{timeZone:'America/New_York',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(date);
   const p = Object.fromEntries(parts.map(x=>[x.type,x.value])); return `${p.year}-${p.month}-${p.day}`;
 }
+export function normalizeVin(value) {
+  return String(value??'').trim().toUpperCase();
+}
 export function validateRequest(d,today=easternToday()) {
   if(!Object.hasOwn(SERVICES,d.service)) return 'Please select a service.';
   const year=Number(d.year); const thisYear=Number(today.slice(0,4));
@@ -20,7 +23,9 @@ export function validateRequest(d,today=easternToday()) {
   const phone=String(d.phone||'').replace(/\D/g,''); if(phone.length<10||phone.length>15) return 'Please enter a phone number with at least 10 digits.';
   if(d.email&&(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(d.email)||d.email.length>160)) return 'Please enter a valid email address.';
   if(d.preferredContact==='email'&&!d.email) return 'Please enter an email address for email contact.';
-  if(String(d.vin||'').trim()&&!/^[A-HJ-NPR-Z0-9]{17}$/.test(String(d.vin||'').trim().toUpperCase())) return 'Enter a valid 17-character VIN (letters I, O, Q are not used).';
+  const vin=normalizeVin(d.vin);
+  if(!vin) return 'Enter your 17-character VIN. Letters I, O and Q are not used.';
+  if(!/^[A-HJ-NPR-Z0-9]{17}$/.test(vin)) return 'Enter a valid 17-character VIN (letters I, O and Q are not used).';
   if(!String(d.address||'').trim()||String(d.address).length>240)return 'Enter the service street address.';
   if(!d.consent) return 'Please agree to being contacted about your request.';
   return '';

@@ -411,8 +411,11 @@
 </label>
 <label>Vehicle year<input name="year" type="number" inputmode="numeric" min="1900" max="2028" required="" placeholder="2018">
 </label>
-<label>Make<input name="make" required="" maxlength="60" placeholder="Honda">
+<label>Make<input name="make" list="vehicle-makes" required="" maxlength="60" placeholder="Honda">
 </label>
+<datalist id="vehicle-makes">
+<option value="Acura"><option value="Alfa Romeo"><option value="Audi"><option value="BMW"><option value="Buick"><option value="Cadillac"><option value="Chevrolet"><option value="Chrysler"><option value="Dodge"><option value="Ford"><option value="Genesis"><option value="GMC"><option value="Honda"><option value="Hyundai"><option value="Infiniti"><option value="Jaguar"><option value="Jeep"><option value="Kia"><option value="Land Rover"><option value="Lexus"><option value="Lincoln"><option value="Mazda"><option value="Mercedes-Benz"><option value="Mini"><option value="Mitsubishi"><option value="Nissan"><option value="Polestar"><option value="Porsche"><option value="Ram"><option value="Rivian"><option value="Subaru"><option value="Tesla"><option value="Toyota"><option value="Volkswagen"><option value="Volvo">
+</datalist>
 <label class="full">Model<input name="model" required="" maxlength="80" placeholder="Accord">
 </label>
 <label>Trim <span class="optional">Optional</span><input name="trim" maxlength="80" placeholder="EX, XLT, Sport…">
@@ -421,9 +424,9 @@
 </label>
 <label>Approx. mileage <span class="optional">Optional</span><input name="mileage" type="number" inputmode="numeric" min="0" max="2000000" step="1" placeholder="85000">
 </label>
-<label class="full">Vehicle VIN <span class="optional">Optional, helpful for exact parts</span>
-<input name="vin" minlength="17" maxlength="17" pattern="[A-HJ-NPR-Za-hj-npr-z0-9]{17}" autocapitalize="characters" spellcheck="false" aria-describedby="vin-help" placeholder="17-character vehicle identification number">
-<span class="vin-help" id="vin-help">VIN is optional for a request. If you provide one, it must have 17 characters; it helps us verify parts fitment. Letters I, O and Q are not used.</span>
+<label class="full">Vehicle VIN <span class="required">Required</span>
+<input name="vin" required="" minlength="17" maxlength="17" pattern="[A-HJ-NPR-Za-hj-npr-z0-9]{17}" autocapitalize="characters" autocomplete="off" spellcheck="false" aria-describedby="vin-help" placeholder="17-character vehicle identification number">
+<span class="vin-help" id="vin-help">Needed for an accurate quote — find it on your dashboard or registration. Letters I, O and Q are not used.</span>
 </label>
 <label class="full">What’s going on?<textarea name="description" required="" minlength="8" maxlength="1800" placeholder="Tell us about the work you need, any sounds or warning lights, and when it started.">
 </textarea>
@@ -449,7 +452,7 @@
 <input name="address" required="" maxlength="240" autocomplete="street-address" placeholder="Street address for appointment">
 <span class="booking-address-note">Your address is visible only to authorized staff for planning your visit.</span>
 </label>
-<label>Service location<select name="locationType">
+<label class="full">Service location<select name="locationType">
 <option>Come to my location</option>
 <option>Ask about bringing my car</option>
 </select>

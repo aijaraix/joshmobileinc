@@ -13,3 +13,6 @@
 
 /* Booking honeypot: retained for server-side spam detection, never shown to customers. */
 .honeypot{display:none!important}
+
+/* Keep a focused booking field visible above a phone keyboard. */
+@media(max-width:700px){#booking-form input,#booking-form select,#booking-form textarea{scroll-margin-block:9rem;scroll-margin-inline:1rem}}

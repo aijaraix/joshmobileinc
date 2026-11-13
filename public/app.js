@@ -1,6 +1,6 @@
 (async function(){
 'use strict';
-const {easternToday,validateRequest,fileError,receiptMessage,deliveryLinks,selfReferenceSMS}=await import('/request.mjs');
+const {easternToday,validateRequest,fileError,receiptMessage,deliveryLinks,selfReferenceSMS,normalizeVin}=await import('/request.mjs');
 const $=id=>document.getElementById(id);
 const menu=$('menu-toggle'),mobile=$('mobile-menu');
 menu.addEventListener('click',()=>{const open=menu.getAttribute('aria-expanded')!=='true';menu.setAttribute('aria-expanded',String(open));menu.setAttribute('aria-label',open?'Close menu':'Open menu');mobile.hidden=!open;});
@@ -16,6 +16,16 @@ const saveContinuity=reference=>{try{sessionStorage.setItem(continuityKey,JSON.s
 const previous=getContinuity();if(previous?.requestId&&previous?.continuationProof){requestId=previous.requestId;continuationProof=previous.continuationProof;$('resume-note').hidden=false;}
 fetch('/api/workspace',{cache:'no-store'}).then(r=>r.ok?r.json():null).then(c=>{onlineConnected=c?.connected===true;}).catch(()=>{});
 $('preferred-date').min=easternToday();form.elements.year.max=Number(easternToday().slice(0,4))+2;
+const vinInput=form.elements.vin;
+vinInput.addEventListener('input',()=>{const normalized=normalizeVin(vinInput.value);if(vinInput.value!==normalized){const cursor=Math.min(vinInput.selectionStart??normalized.length,normalized.length);vinInput.value=normalized;vinInput.setSelectionRange(cursor,cursor);}});
+const mobileViewport=matchMedia('(max-width: 700px)'),reduceMotion=matchMedia('(prefers-reduced-motion: reduce)');
+let focusRevealTimer=0;
+function revealFocusedControl(control,delay=120){
+ if(!mobileViewport.matches||document.activeElement!==control)return;
+ clearTimeout(focusRevealTimer);focusRevealTimer=window.setTimeout(()=>{if(document.activeElement===control)control.scrollIntoView({block:'center',inline:'nearest',behavior:reduceMotion.matches?'auto':'smooth'});},delay);
+}
+for(const control of form.querySelectorAll('input,select,textarea'))control.addEventListener('focus',()=>revealFocusedControl(control));
+if(window.visualViewport){const revealAfterViewportChange=()=>revealFocusedControl(document.activeElement,80);window.visualViewport.addEventListener('resize',revealAfterViewportChange);window.visualViewport.addEventListener('scroll',revealAfterViewportChange);window.addEventListener('pagehide',()=>{window.visualViewport.removeEventListener('resize',revealAfterViewportChange);window.visualViewport.removeEventListener('scroll',revealAfterViewportChange);});}
 const timeSelect=$('preferred-time'),availabilityNote=$('availability-note');
 let slots=null,availabilitySequence=0;
 async function loadSlots(){
@@ -83,7 +93,7 @@ async function uploadSelected(){
  }catch(error){$('share-status').textContent='Your request is saved, but attachments need another attempt. '+String(error.message||'');}
  finally{$('retry-uploads').disabled=false;showReceipt();}
 }
-form.addEventListener('submit',async event=>{event.preventDefault();const details=Object.fromEntries(new FormData(form));details.consent=!!details.consent;details.vin=String(details.vin||'').toUpperCase().replace(/\s/g,'');const error=validateRequest(details)||(Array.isArray(slots)&&!slots.includes(details.time)?'Please choose an available time.':'');showError('form-error',error);if(error)return;const nextFiles=JSON.stringify(files.map(file=>[file.name,file.type,file.size,file.lastModified]));if(preparedData&&(JSON.stringify(preparedData)!==JSON.stringify(details)||fileSignature!==nextFiles)){requestId='';continuationProof='';savedRequest=null;received.clear();try{sessionStorage.removeItem(continuityKey);}catch{}}preparedData=details;fileSignature=nextFiles;try{await saveRequest();}catch(err){showError('form-error',String(err.message||'Please retry your request.'));}});
+form.addEventListener('submit',async event=>{event.preventDefault();const details=Object.fromEntries(new FormData(form));details.consent=!!details.consent;details.vin=normalizeVin(details.vin);vinInput.value=details.vin;const error=validateRequest(details)||(Array.isArray(slots)&&!slots.includes(details.time)?'Please choose an available time.':'');showError('form-error',error);if(error)return;const nextFiles=JSON.stringify(files.map(file=>[file.name,file.type,file.size,file.lastModified]));if(preparedData&&(JSON.stringify(preparedData)!==JSON.stringify(details)||fileSignature!==nextFiles)){requestId='';continuationProof='';savedRequest=null;received.clear();try{sessionStorage.removeItem(continuityKey);}catch{}}preparedData=details;fileSignature=nextFiles;try{await saveRequest();}catch(err){showError('form-error',String(err.message||'Please retry your request.'));}});
 $('retry-uploads').addEventListener('click',async()=>{if(!savedRequest)return;if(!files.length){$('share-status').textContent='Your request is already saved. After a reload, choose the original files again to retry incomplete attachments.';return;}try{await saveRequest({renew:true});}catch(error){$('share-status').textContent='Your request is saved. '+String(error.message||'Unable to renew uploads.');}});
 $('edit-request').addEventListener('click',()=>{if(savedRequest)return;review.hidden=true;form.hidden=false;$('service').focus();});
 $('copy-reference').addEventListener('click',async()=>{try{await navigator.clipboard.writeText(savedRequest.reference);$('share-status').textContent='Reference copied.';}catch{$('share-status').textContent='Select the reference above to copy it.';}});
