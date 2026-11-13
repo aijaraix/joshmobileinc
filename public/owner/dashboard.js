@@ -1,4 +1,5 @@
 import {contactKey,groupContacts,isUpcomingAppointment} from './crm-model.mjs';
+import {isOwnerEmail,trashUiVisibility} from './owner-access.mjs';
 'use strict';
 const $=id=>document.getElementById(id),msg=(id,value)=>{if($(id))$(id).textContent=value;};
 const api=async(action,method='GET',body)=>{const r=await fetch('/api/admin?action='+encodeURIComponent(action),{method,credentials:'same-origin',headers:method==='POST'?{'Content-Type':'application/json'}:{},body:body?JSON.stringify(body):undefined,cache:'no-store'});const d=await r.json().catch(()=>({error:'Could not read the response.'}));if(!r.ok){if(r.status===401&&!['login','activate'].includes(action))showLogin();throw new Error(d.error||'Request failed.');}return d;};
@@ -7,12 +8,14 @@ const services={brakes:'Brake pads & rotors',suspension:'Suspension',ignition:'S
 const date=s=>s?new Date(s).toLocaleString('en-US',{timeZone:'America/New_York',dateStyle:'medium',timeStyle:'short'})+' ET':'Not confirmed';
 function easternInput(s){if(!s)return '';const parts=new Intl.DateTimeFormat('en-US',{timeZone:'America/New_York',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).formatToParts(new Date(s));const p=Object.fromEntries(parts.map(x=>[x.type,x.value]));return `${p.year}-${p.month}-${p.day}T${p.hour}:${p.minute}`;}
 function easternISO(s){if(!s)return '';const candidates=[new Date(s+'-04:00'),new Date(s+'-05:00')].filter(x=>Number.isFinite(+x)&&easternInput(x.toISOString())===s);if(candidates.length!==1)throw new Error('That Eastern time is ambiguous or does not exist because of daylight saving. Choose another time.');return candidates[0].toISOString();}
-let jobs=[],customers=[],vehicles=[],partsRequests=[],serviceCatalog=[],partsSettings={},selected=null,selectedParts=null,editingCustomer=null,editingVehicle=null,filter='overview',section='overview',activation=null,markerRevision=0,seenRequested=new Set(),unreadNew=0,soundAllowed=false,ownerEmail='',ownerPushState=null,installPrompt=null;
+let jobs=[],customers=[],vehicles=[],partsRequests=[],serviceCatalog=[],partsSettings={},selected=null,selectedParts=null,editingCustomer=null,editingVehicle=null,filter='overview',section='overview',activation=null,markerRevision=0,seenRequested=new Set(),unreadNew=0,soundAllowed=false,ownerEmail='',ownerPushState=null,installPrompt=null,deleteTarget=null,undoDelete=null,undoTimer=0;
 const params=new URLSearchParams(location.hash.slice(1)),requestedReference=params.get('request')||'',initialRecordId=params.get('record')||'';
 let pendingDeepLink=requestedReference,pendingRecordId=initialRecordId;
 const initialSection=params.get('view')||((requestedReference||initialRecordId)?'leads':'overview');if(params.has('activate')){activation={token:params.get('activate'),email:params.get('email')||''};history.replaceState(null,'',location.pathname);$('login-email').value=activation.email;$('login-email').readOnly=true;$('login-password').autocomplete='new-password';$('confirm-label').hidden=false;$('confirm-password').required=true;msg('login-title','Set up your account.');msg('login-submit','Create password & sign in');msg('login-subtitle','Choose a private password of at least 12 characters. Your activation link can be used once.');}
-function showLogin(){activation=null;closeCrmNav();$('login-email').readOnly=false;$('confirm-label').hidden=true;$('confirm-password').required=false;$('login-password').autocomplete='current-password';msg('login-title','Welcome back.');msg('login-submit','Sign in');$('login-screen').hidden=false;$('dashboard-screen').hidden=true;$('signout').hidden=true;jobs=[];selected=null;$('jobs-list').replaceChildren();$('detail-media').replaceChildren();}
-function showDashboard(email){ownerEmail=email;$('telegram-test').hidden=email!=='joshmobileinc@gmail.com';$('phone-alert-settings').hidden=email!=='joshmobileinc@gmail.com';activation=null;$('login-screen').hidden=true;$('dashboard-screen').hidden=false;$('signout').hidden=false;msg('admin-email',email);msg('today-date',new Date().toLocaleDateString('en-US',{timeZone:'America/New_York',weekday:'long',month:'long',day:'numeric'})+' · Eastern time');setSection(sectionConfig[initialSection]?initialSection:'overview','replace');if(email==='joshmobileinc@gmail.com')refreshPushStatus();load();loadCrm();}
+const isOwner=()=>isOwnerEmail(ownerEmail);
+function updateOwnerOnlyUi(){const owner=isOwner();$('telegram-test').hidden=!owner;$('phone-alert-settings').hidden=!owner;$('show-deleted').hidden=!owner;const trashNav=document.querySelector('#crm-nav [data-section="trash"]');if(trashNav)trashNav.hidden=!owner;if(!owner)hideRequestToast();}
+function showLogin(){activation=null;closeCrmNav();hideRequestToast();$('login-email').readOnly=false;$('confirm-label').hidden=true;$('confirm-password').required=false;$('login-password').autocomplete='current-password';msg('login-title','Welcome back.');msg('login-submit','Sign in');$('login-screen').hidden=false;$('dashboard-screen').hidden=true;$('signout').hidden=true;jobs=[];selected=null;$('jobs-list').replaceChildren();$('detail-media').replaceChildren();}
+function showDashboard(email){ownerEmail=email;updateOwnerOnlyUi();activation=null;$('login-screen').hidden=true;$('dashboard-screen').hidden=false;$('signout').hidden=false;msg('admin-email',email);msg('today-date',new Date().toLocaleDateString('en-US',{timeZone:'America/New_York',weekday:'long',month:'long',day:'numeric'})+' · Eastern time');setSection(sectionConfig[initialSection]?initialSection:'overview','replace');if(isOwner())refreshPushStatus();load();loadCrm();}
 const currencyInput=value=>Number.isSafeInteger(value)?(value/100).toFixed(2):'';
 const currencyDisplay=value=>Number.isSafeInteger(value)?new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(value/100):'Not quoted';
 function updateQuoteTotal(){
@@ -76,6 +79,7 @@ function confirmDiscard(){
  return !dirty()||window.confirm('You have unsaved changes. Leave this record and discard those changes?');
 }
 function setSection(next,historyMode='push'){
+ if(next==='trash'&&!isOwner())next='jobs';
  const config=sectionConfig[next];if(!config)return false;
  if(!confirmDiscard())return false;
  section=next;filter=config.filter;
@@ -100,11 +104,14 @@ function customerSearchText(customer){
  return [jobSearchText(customer),...vehicles.filter(vehicle=>vehicle.customerId===customer.id).map(vehicle=>jobSearchText(vehicle))].join(' ');
 }
 const statusLabel=status=>({requested:'New request',confirmed:'Confirmed',scheduled:'Scheduled',in_progress:'In progress',completed:'Completed',cancelled:'Cancelled',no_show:'No show'}[status]||status);
+const canSoftDeleteRequest=job=>trashUiVisibility(ownerEmail,job).showDelete;
+const canRestoreRequest=job=>trashUiVisibility(ownerEmail,job).showRestore;
 function renderJobButton(j){
  const newest=(j.timeline||[]).filter(item=>item.kind!=='created').at(-1);
  const message=filter==='messages'&&newest?'<small>'+esc(newest.kind)+' · '+esc(newest.text)+'</small>':'';
  const when=j.appointmentAt?date(j.appointmentAt):'Preferred: '+(j.date||'Not set')+' · '+(j.time||'Flexible');
- return '<button type="button" class="job-item '+(selected?.id===j.id?'selected':'')+'" data-id="'+esc(j.id)+'"><span class="status '+esc(j.status)+'">'+esc(statusLabel(j.status))+'</span><strong>'+esc(j.name)+'</strong><span>'+esc([j.year,j.make,j.model,j.trim].filter(Boolean).join(' '))+'</span><span>'+esc(services[j.service]||j.service)+'</span><small>'+esc(j.reference||j.id)+'</small><small>'+esc(when)+'</small><small>'+esc(j.city||'')+'</small>'+message+'</button>';
+ const deleteAction=canSoftDeleteRequest(j)?'<button type="button" class="list-delete destructive" data-delete-request="'+esc(j.id)+'" aria-label="Delete request '+esc(j.reference||j.id)+'">Delete</button>':'';
+ return '<article class="job-list-row"><button type="button" class="job-item '+(selected?.id===j.id?'selected':'')+'" data-id="'+esc(j.id)+'"><span class="status '+esc(j.status)+'">'+esc(statusLabel(j.status))+'</span><strong>'+esc(j.name)+'</strong><span>'+esc([j.year,j.make,j.model,j.trim].filter(Boolean).join(' '))+'</span><span>'+esc(services[j.service]||j.service)+'</span><small>'+esc(j.reference||j.id)+'</small><small>'+esc(when)+'</small><small>'+esc(j.city||'')+'</small>'+message+'</button>'+deleteAction+'</article>';
 }
 function renderCustomerButton(group){
  const j=group.records[0],vehicle=[j.year,j.make,j.model].filter(Boolean).join(' ');
@@ -121,6 +128,7 @@ function render(){
  const customerKeys=new Set(customers.filter(customer=>customer.status!=='archived').map(contactKey)),legacyContacts=contacts.filter(group=>!customerKeys.has(group.key));
  msg('count-new',requested.length);msg('count-upcoming',upcoming.length);msg('count-customers',customers.filter(customer=>customer.status!=='archived').length+legacyContacts.length);msg('count-done',jobs.filter(j=>j.status==='completed').length);
  msg('nav-count-leads',requested.length);msg('nav-count-appointments',upcoming.length);msg('nav-count-trash',trashed.length);
+ const showingDeleted=filter==='trash',showDeleted=$('show-deleted');showDeleted.hidden=!trashUiVisibility(ownerEmail).showTrash;showDeleted.textContent=showingDeleted?'Hide deleted':'Show deleted'+(trashed.length?' ('+trashed.length+')':'');showDeleted.setAttribute('aria-pressed',String(showingDeleted));
  let html='',count=0;
  if(filter==='customers'){
   const items=customers.filter(customer=>customerSearchText(customer).includes(q)),legacy=legacyContacts.filter(group=>group.records.some(job=>jobSearchText(job).includes(q)));
@@ -138,6 +146,7 @@ function render(){
  msg('list-count',count+' '+(count===1?'record':'records'));
  $('jobs-list').innerHTML=html||'<div class="empty-detail"><h3>No records here yet.</h3><p>New website requests will appear here. Use Add customer / job for customers who contacted you by phone.</p></div>';
  $('jobs-list').querySelectorAll('[data-id]').forEach(button=>button.onclick=()=>{unreadNew=0;choose(button.dataset.id,true);});
+ $('jobs-list').querySelectorAll('[data-delete-request]').forEach(button=>button.onclick=event=>{event.stopPropagation();openDeleteRequestDialog(button.dataset.deleteRequest);});
   $('jobs-list').querySelectorAll('[data-customer-id]').forEach(button=>button.onclick=()=>openCustomerFromList(button.dataset.customerId));
 }
 function renderCatalogOptions(){
@@ -203,9 +212,9 @@ function choose(id,writeHistory=false){
  $('empty-detail').hidden=true;$('job-detail').hidden=false;
  const mobile=matchMedia('(max-width: 900px)').matches;$('workspace-grid').classList.toggle('has-selection',mobile);$('back-to-list').hidden=!mobile;
  $('back-to-list').textContent=section==='trash'?'← Back to Trash':section==='leads'?'← Back to requests':'← Back to '+(sectionConfig[section]?.title||'list');
- $('lead-management').hidden=!['requested','cancelled'].includes(j.status)&&!j.deletedAt;
- $('delete-lead').hidden=!!j.deletedAt||!['requested','cancelled'].includes(j.status);
- $('trashed-lead-actions').hidden=!j.deletedAt;
+ $('lead-management').hidden=!canSoftDeleteRequest(j)&&!canRestoreRequest(j);
+ $('delete-lead').hidden=!canSoftDeleteRequest(j);
+ $('trashed-lead-actions').hidden=!canRestoreRequest(j);
  $('job-form').hidden=!!j.deletedAt;
  document.querySelector('.job-actions').hidden=!!j.deletedAt;
  msg('job-title',j.name);msg('job-reference','Reference: '+(j.reference||j.id));msg('job-summary',services[j.service]||j.service);
@@ -252,26 +261,39 @@ function returnToList(historyMode='push'){
  return true;
 }
 
-async function modifyLead(action,confirmation={}){
- if(!selected)return;
- const item=selected,reference=item.reference||item.id;
- try{
-  const response=await api(action,'POST',{id:item.id,version:item.version,confirmReference:reference,...confirmation});
-  msg('lead-action-message',action==='trash'?'Lead moved to Trash.':action==='restore'?'Lead restored.':'Lead deleted permanently.');
-  await load();
-  if(action==='trash')setSection('leads');else if(action==='restore')setSection('trash');else setSection('trash');
-  return response;
- }catch(error){msg('lead-action-message',error.message);throw error;}
+function clearSelectedRequest(id){
+ if(selected?.id!==id)return;selected=null;$('workspace-grid').classList.remove('has-selection');$('back-to-list').hidden=true;$('job-detail').hidden=true;$('empty-detail').hidden=false;
 }
-$('delete-lead').onclick=async()=>{
- if(!selected||selected.deletedAt)return;
- const j=selected,reference=j.reference||j.id;
- if(!window.confirm('Move '+j.name+' ('+reference+') to Trash? You can restore this lead later.'))return;
- try{await modifyLead('trash');}catch{}
+function hideRequestToast(){clearTimeout(undoTimer);undoDelete=null;$('request-toast').hidden=true;}
+function showRequestToast(message,undoRecord=null){
+ if(!trashUiVisibility(ownerEmail).showUndo){hideRequestToast();return;}
+ clearTimeout(undoTimer);undoDelete=undoRecord;msg('request-toast-message',message);$('undo-delete').hidden=!undoRecord;$('request-toast').hidden=false;undoTimer=window.setTimeout(hideRequestToast,12000);
+}
+async function modifyLead(action,item=selected,confirmation={}){
+ if(!item)return null;const reference=item.reference||item.id;
+ const response=await api(action,'POST',{id:item.id,version:item.version,confirmReference:reference,...confirmation});await load();return response;
+}
+function openDeleteRequestDialog(id){
+ const item=jobs.find(job=>job.id===id);if(!canSoftDeleteRequest(item))return;deleteTarget=item;msg('delete-request-summary','Move '+item.name+'\'s request ('+(item.reference||item.id)+') to Trash? It does not delete the linked customer, vehicle, other jobs, photos, or history.');msg('delete-request-message','');$('delete-request-dialog').showModal();
+}
+async function trashWebsiteRequest(item){
+ const response=await modifyLead('trash',item);clearSelectedRequest(item.id);render();showRequestToast('Request moved to Trash.',response.job);return response;
+}
+async function restoreWebsiteRequest(item,{fromUndo=false}={}){
+ const response=await modifyLead('restore',item);clearSelectedRequest(item.id);render();if(fromUndo){hideRequestToast();showRequestToast('Request restored.');}else{msg('lead-action-message','Request restored.');showRequestToast('Request restored.');}return response;
+}
+$('delete-lead').onclick=()=>openDeleteRequestDialog(selected?.id);
+$('cancel-delete-request').onclick=()=>$('delete-request-dialog').close();
+$('delete-request-dialog').addEventListener('close',()=>{deleteTarget=null;});
+$('delete-request-form').onsubmit=async event=>{
+ event.preventDefault();const item=deleteTarget;if(!item)return;$('confirm-delete-request').disabled=true;
+ try{await trashWebsiteRequest(item);$('delete-request-dialog').close();}catch(error){msg('delete-request-message',error.message);}finally{$('confirm-delete-request').disabled=false;}
 };
-$('restore-lead').onclick=async()=>{try{await modifyLead('restore');}catch{}};
+$('restore-lead').onclick=async()=>{if(!isOwner())return;try{await restoreWebsiteRequest(selected);setSection('leads','replace');}catch(error){msg('lead-action-message',error.message);}};
+$('undo-delete').onclick=async()=>{if(!isOwner())return;const item=undoDelete;if(!item)return;$('undo-delete').disabled=true;try{await restoreWebsiteRequest(item,{fromUndo:true});setSection('leads','replace');}catch(error){showRequestToast(error.message,item);}finally{$('undo-delete').disabled=false;}};
+$('dismiss-request-toast').onclick=hideRequestToast;
 $('purge-lead').onclick=()=>{
- if(!selected?.deletedAt)return;
+ if(!isOwner()||!selected?.deletedAt)return;
  msg('purge-message','');$('purge-confirm-reference').value='';
  msg('purge-reference-label',selected.reference||selected.id);
  $('purge-dialog').showModal();
@@ -284,13 +306,13 @@ $('purge-form').onsubmit=async event=>{
   msg('purge-message','The reference does not match. No data was deleted.');return;
  }
  $('confirm-purge').disabled=true;
- try{await modifyLead('purge',{confirmText:'DELETE'});$('purge-dialog').close();}
+ try{await modifyLead('purge',selected,{confirmText:'DELETE'});clearSelectedRequest(j.id);render();$('purge-dialog').close();}
  catch(error){msg('purge-message',error.message);}
  finally{$('confirm-purge').disabled=false;}
 };
 $('login-form').onsubmit=async e=>{e.preventDefault();const button=$('login-submit');button.disabled=true;msg('login-message','Signing in…');try{if(activation&&$('login-password').value!==$('confirm-password').value)throw new Error('Passwords do not match.');const r=await api(activation?'activate':'login','POST',{email:$('login-email').value,password:$('login-password').value,...(activation?{token:activation.token}:{})});$('login-password').value='';$('confirm-password').value='';msg('login-message','');showDashboard(r.email);}catch(err){msg('login-message',err.message);}finally{button.disabled=false;}};
 $('signout').onclick=async()=>{try{await api('logout','POST',{});location.reload();}catch(e){msg('list-count',e.message);}};
-$('refresh-jobs').onclick=()=>load();$('search-jobs').oninput=render;
+$('refresh-jobs').onclick=()=>load();$('search-jobs').oninput=render;$('show-deleted').onclick=()=>{if(isOwner())setSection(filter==='trash'?'jobs':'trash');};
 $('crm-nav').querySelectorAll('[data-section]').forEach(button=>button.onclick=()=>setSection(button.dataset.section));
 $('back-overview').onclick=()=>setSection('overview');
 $('requests-overview').onclick=()=>setSection('overview');
@@ -459,7 +481,7 @@ $('install-owner-app').onclick=async()=>{
 window.addEventListener('beforeinstallprompt',event=>{event.preventDefault();installPrompt=event;$('install-owner-app').hidden=false;});
 window.addEventListener('appinstalled',()=>{$('install-owner-app').hidden=true;msg('push-alert-message','Josh Mobile Owner app installed. Sign in and enable alerts when ready.');});
 if('serviceWorker'in navigator)navigator.serviceWorker.register('/owner/service-worker.js',{scope:'/owner'}).catch(()=>{});
-if(!activation)api('session').then(r=>{ $('telegram-test').hidden=r.email!=='joshmobileinc@gmail.com';showDashboard(r.email);}).catch(()=>{});
+if(!activation)api('session').then(r=>showDashboard(r.email)).catch(()=>{});
 
 const DAYS=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
 async function loadAvailability(){

@@ -24,7 +24,11 @@ Jobs, account hashes, sessions, reference claims, notification state, and media 
 
 Hours remain staff-configured in America/New_York. Until enabled, the public form requests Morning/Afternoon/Flexible preferences. When enabled, both client and server reject closed, blocked, stale, or unavailable request times. Pending requests do not lock a slot. Confirmed and scheduled appointments are overlap-checked, and later hour changes preserve conflicting existing appointments for staff review.
 
-The public form accepts optional trim, engine, mileage, and VIN information. A supplied VIN is validated; its absence never causes the website to invent vehicle facts or a part-fitment result.
+The public form requires year, make, model, and a 17-character VIN. VINs are
+uppercased and must use letters/digits other than I, O, and Q. Trim, engine,
+and mileage remain optional. Existing requests and manual CRM vehicles without
+a VIN remain valid; the site never invents vehicle facts or a part-fitment
+result.
 
 ## Owner alerts
 
