@@ -136,6 +136,7 @@
 <span class="sr-only">Search customers or vehicles</span>
 <input id="search-jobs" type="search" placeholder="Search customer, vehicle, VIN or phone…">
 </label>
+<div class="list-filter-actions"><button id="show-deleted" class="outline" type="button" aria-pressed="false">Show deleted</button></div>
 
 <p id="list-count" class="subtle small-text">
 </p>
@@ -162,11 +163,11 @@
 </p>
 </div>
 <div id="lead-management" class="lead-management">
- <button id="delete-lead" class="outline destructive" type="button" hidden>Move lead to Trash</button>
+ <button id="delete-lead" class="outline destructive" type="button" hidden>Delete request</button>
  <div id="trashed-lead-actions" hidden>
-  <p class="trash-notice">This lead is in Trash and does not appear in active requests or appointments.</p>
+  <p class="trash-notice">This request is in Trash and does not appear in active requests or appointments.</p>
   <div class="trash-action-buttons">
-   <button id="restore-lead" class="primary" type="button">Restore lead</button>
+   <button id="restore-lead" class="primary" type="button">Restore request</button>
    <button id="purge-lead" class="outline destructive" type="button">Delete permanently</button>
   </div>
  </div>
@@ -506,6 +507,22 @@
 <p id="purge-message" role="status"></p>
 </form>
 </dialog>
+<dialog id="delete-request-dialog" class="request-delete-dialog" aria-labelledby="delete-request-title">
+<form id="delete-request-form" method="dialog">
+<h2 id="delete-request-title">Delete this request?</h2>
+<p id="delete-request-summary">This moves the request to Trash. It does not delete the linked customer, vehicle, other jobs, photos, or history.</p>
+<div class="delete-request-actions">
+<button type="button" id="cancel-delete-request" class="outline">Keep request</button>
+<button type="submit" id="confirm-delete-request" class="primary danger-button">Move to Trash</button>
+</div>
+<p id="delete-request-message" class="message" role="status"></p>
+</form>
+</dialog>
+<aside id="request-toast" class="request-toast" role="status" aria-live="polite" hidden>
+<span id="request-toast-message"></span>
+<button id="undo-delete" class="outline" type="button" hidden>Undo</button>
+<button id="dismiss-request-toast" class="toast-dismiss" type="button" aria-label="Dismiss notification">×</button>
+</aside>
 <dialog id="add-dialog">
 <form id="add-job-form">
 <div class="modal-head">
