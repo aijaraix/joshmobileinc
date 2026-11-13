@@ -1,10 +1,15 @@
-import test from 'node:test';import assert from 'node:assert/strict';import {SERVICES,LIMITS,easternToday,validateRequest,fileError,receiptMessage,deliveryLinks,normalizePhone,selfReferenceSMS} from '../lib/request.mjs';
+import test from 'node:test';import assert from 'node:assert/strict';import {SERVICES,LIMITS,easternToday,validateRequest,fileError,receiptMessage,deliveryLinks,normalizePhone,selfReferenceSMS,normalizeVin} from '../lib/request.mjs';
 const valid={vin:'1HGCM82633A004352',address:'123 Example Street',service:'brakes',year:'2018',make:'Honda',model:'Accord',description:'Brake noise while slowing down.',date:'2026-10-27',time:'Morning',city:'Northern Broward',locationType:'Come to my location',name:'Test Customer',phone:'202-555-0142',email:'test@example.com',preferredContact:'text',consent:true};
 const v=(d)=>validateRequest({...valid,...d},'2026-10-25');
 test('six specific services plus the unknown issue fallback',()=>{assert.equal(Object.keys(SERVICES).length,7);assert.equal(SERVICES.other,'Not sure / something else');for(const key of ['brakes','suspension','ignition','engine-filter','cabin-filter','inspection'])assert.ok(SERVICES[key]);});
 test('unknown issue fallback accepts a normal request',()=>assert.equal(v({service:'other'}),''));
 test('valid request accepted',()=>assert.equal(v({}),''));
-test('VIN is optional for a booking but is validated when supplied',()=>{assert.equal(v({vin:''}),'');assert.match(v({vin:'BADVIN'}),/17-character VIN/);});
+test('VIN is required, normalized, and excludes I, O and Q',()=>{
+ assert.match(v({vin:''}),/17-character VIN/);
+ assert.match(v({vin:'BADVIN'}),/17-character VIN/);
+ assert.match(v({vin:'1HGCM82633A00435I'}),/17-character VIN/);
+ assert.equal(normalizeVin(' 1hgcm82633a004352 '),'1HGCM82633A004352');
+});
 test('optional trim, engine and mileage are retained only when valid',()=>{assert.equal(v({trim:'Sport',engine:'2.0L turbo',mileage:'85000'}),'');assert.match(v({mileage:'85.5'}),/mileage/);});
 for(const [name,d] of Object.entries({missingService:{service:''},unknownService:{service:'engine-rebuild'},badYear:{year:'999'},missingName:{name:''},missingCity:{city:''},shortDescription:{description:'bad'},pastDate:{date:'2026-10-24'},impossibleDate:{date:'2026-13-30'},overflowDate:{date:'2026-11-31'},missingDate:{date:''},missingTime:{time:''},badPhone:{phone:'123'},badEmail:{email:'nope'},noConsent:{consent:false},badLocation:{locationType:'walk in'}}))test('reject '+name,()=>assert.notEqual(v(d),''));
 test('today allowed as request, not confirmed availability',()=>assert.equal(v({date:'2026-10-25'}),''));
@@ -30,3 +35,19 @@ test('phone is stored in a normalized form',()=>{assert.equal(normalizePhone('(2
 test('email preferred contact requires a valid email address',()=>{assert.match(v({preferredContact:'email',email:''}),/email address/);assert.equal(v({preferredContact:'text',email:''}),'');});
 test('customer SMS reference link addresses their own phone, never Josh, and contains reference',()=>{const link=selfReferenceSMS('(202) 555-0142','JM-K7P4D2Q9');assert(link.startsWith('sms:+12025550142?body='));assert(link.includes('JM-K7P4D2Q9'));assert(!link.includes('16467967322'));assert(selfReferenceSMS('(202) 555-0142','JM-K7P4D2Q9',true).startsWith('sms:+12025550142&body='));});
 test('privacy notice explains optional Telegram customer-information disclosure',async()=>{const {readFileSync}=await import('node:fs');const notice=readFileSync(new URL('../public/privacy.html',import.meta.url),'utf8');assert.match(notice,/Telegram owner notifications/);assert.match(notice,/VIN/);assert.match(notice,/No customer photo/);});
+test('mobile intake has local make suggestions, an exact VIN helper, and focus-safe controls',async()=>{
+ const {readFileSync}=await import('node:fs');
+ const html=readFileSync(new URL('../public/index.html',import.meta.url),'utf8');
+ const app=readFileSync(new URL('../public/app.js',import.meta.url),'utf8');
+ const css=readFileSync(new URL('../public/styles.css',import.meta.url),'utf8');
+ assert.match(html,/name="make"[^>]*list="vehicle-makes"/);
+ assert.match(html,/<option value="Volkswagen">/);
+ assert.match(html,/<option value="Volvo">/);
+ assert.match(html,/name="vin"[^>]*required/);
+ assert.match(html,/Needed for an accurate quote — find it on your dashboard or registration/);
+ assert.match(html,/<label class="full">Service location<select name="locationType">/);
+ assert.match(app,/vinInput\.addEventListener\('input'/);
+ assert.match(app,/visualViewport\.addEventListener\('resize'/);
+ assert.match(app,/scrollIntoView\(\{block:'center'/);
+ assert.match(css,/scroll-margin-block:9rem/);
+});
