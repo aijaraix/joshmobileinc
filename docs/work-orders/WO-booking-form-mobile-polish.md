@@ -1,6 +1,6 @@
 # Work Order — Booking Form Mobile Polish
 
-**Status:** Implementation complete; ready for owner review
+**Status:** Follow-up in progress
 **Scope:** Public service-request form and authenticated owner request management only  
 **Safety:** No production deployment, merge, notification changes, customer contact, or public delete API
 
@@ -78,3 +78,25 @@ It does not replace or invoke the older separate permanent-removal control.
   managed sandbox blocks Chromium from creating its required local socket, so
   those local screenshots could not be captured in this workspace. No live site
   or customer record was accessed.
+
+## Follow-up — owner-only trash UI and VIN whitespace (2026-11-13)
+
+### Scope
+
+- Hide every trash-management control from a signed-in manager: list/detail
+  Delete, Show deleted, Trash navigation, Restore, Undo, and Purge. The browser
+  must use the same fixed owner identity as the Telegram and push controls;
+  server-side authorization remains the source of truth.
+- Normalize public-booking VINs by removing all whitespace before uppercasing in
+  both the browser copy and the server/shared copy. Do not alter legacy records.
+
+### Acceptance and safety
+
+- Add an executable owner-visibility test proving a manager receives no
+  trash-management actions, plus retain the manager `403` API assertion.
+- Add a test for a VIN containing interior whitespace in both client and server
+  normalization paths.
+- Do not change the already-correct server owner gate, production data, DNS,
+  environment variables, notifications, billing, runners, workflows, or any
+  deployment setting. Do not chase the known account-level GitHub Actions
+  test-build failure. Grok Bot owns the SSO-preview screenshots.
