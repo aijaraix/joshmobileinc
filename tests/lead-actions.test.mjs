@@ -9,7 +9,7 @@ import {memoryStore} from './memory-store.mjs';
 import {useTestStore,writeJson,readJson,jobPath,jobById,customerPath,vehiclePath} from '../lib/private-store.mjs';
 process.env.NODE_ENV='test';
 useTestStore(memoryStore());
-test('Only the owner can soft-delete and restore a website request without touching its CRM records',async()=>{
+test('Only the owner can soft-delete and restore a website request; a manager receives 403',async()=>{
  const owner='joshmobileinc@gmail.com',manager='sholom@aicreates.ai',token=randomBytes(32).toString('hex'),managerToken=randomBytes(32).toString('hex'),pass=randomBytes(22).toString('base64url');
  process.env.JM_SESSION_SECRET=randomBytes(48).toString('hex');
  process.env.JM_OWNER_INVITE_HASH=digest(token);process.env.JM_MANAGER_INVITE_HASH=digest(managerToken);

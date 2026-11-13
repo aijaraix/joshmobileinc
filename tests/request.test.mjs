@@ -1,4 +1,4 @@
-import test from 'node:test';import assert from 'node:assert/strict';import {SERVICES,LIMITS,easternToday,validateRequest,fileError,receiptMessage,deliveryLinks,normalizePhone,selfReferenceSMS,normalizeVin} from '../lib/request.mjs';
+import test from 'node:test';import assert from 'node:assert/strict';import {SERVICES,LIMITS,easternToday,validateRequest,fileError,receiptMessage,deliveryLinks,normalizePhone,selfReferenceSMS,normalizeVin} from '../lib/request.mjs';import {normalizeVin as normalizePublicVin} from '../public/request.mjs';
 const valid={vin:'1HGCM82633A004352',address:'123 Example Street',service:'brakes',year:'2018',make:'Honda',model:'Accord',description:'Brake noise while slowing down.',date:'2026-10-27',time:'Morning',city:'Northern Broward',locationType:'Come to my location',name:'Test Customer',phone:'202-555-0142',email:'test@example.com',preferredContact:'text',consent:true};
 const v=(d)=>validateRequest({...valid,...d},'2026-10-25');
 test('six specific services plus the unknown issue fallback',()=>{assert.equal(Object.keys(SERVICES).length,7);assert.equal(SERVICES.other,'Not sure / something else');for(const key of ['brakes','suspension','ignition','engine-filter','cabin-filter','inspection'])assert.ok(SERVICES[key]);});
@@ -9,6 +9,9 @@ test('VIN is required, normalized, and excludes I, O and Q',()=>{
  assert.match(v({vin:'BADVIN'}),/17-character VIN/);
  assert.match(v({vin:'1HGCM82633A00435I'}),/17-character VIN/);
  assert.equal(normalizeVin(' 1hgcm82633a004352 '),'1HGCM82633A004352');
+ assert.equal(normalizeVin('1hg cm826 33a004352'),'1HGCM82633A004352');
+ assert.equal(normalizePublicVin('1hg cm826 33a004352'),'1HGCM82633A004352');
+ assert.equal(v({vin:'1hg cm826 33a004352'}),'');
 });
 test('optional trim, engine and mileage are retained only when valid',()=>{assert.equal(v({trim:'Sport',engine:'2.0L turbo',mileage:'85000'}),'');assert.match(v({mileage:'85.5'}),/mileage/);});
 for(const [name,d] of Object.entries({missingService:{service:''},unknownService:{service:'engine-rebuild'},badYear:{year:'999'},missingName:{name:''},missingCity:{city:''},shortDescription:{description:'bad'},pastDate:{date:'2026-10-24'},impossibleDate:{date:'2026-13-30'},overflowDate:{date:'2026-11-31'},missingDate:{date:''},missingTime:{time:''},badPhone:{phone:'123'},badEmail:{email:'nope'},noConsent:{consent:false},badLocation:{locationType:'walk in'}}))test('reject '+name,()=>assert.notEqual(v(d),''));

@@ -5,7 +5,7 @@ export function easternToday(date = new Date()) {
   const p = Object.fromEntries(parts.map(x=>[x.type,x.value])); return `${p.year}-${p.month}-${p.day}`;
 }
 export function normalizeVin(value) {
-  return String(value??'').trim().toUpperCase();
+  return String(value??'').replace(/\s/g,'').toUpperCase();
 }
 export function validateRequest(d,today=easternToday()) {
   if(!Object.hasOwn(SERVICES,d.service)) return 'Please select a service.';

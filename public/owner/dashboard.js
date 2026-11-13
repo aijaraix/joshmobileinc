@@ -1,4 +1,5 @@
 import {contactKey,groupContacts,isUpcomingAppointment} from './crm-model.mjs';
+import {isOwnerEmail,trashUiVisibility} from './owner-access.mjs';
 'use strict';
 const $=id=>document.getElementById(id),msg=(id,value)=>{if($(id))$(id).textContent=value;};
 const api=async(action,method='GET',body)=>{const r=await fetch('/api/admin?action='+encodeURIComponent(action),{method,credentials:'same-origin',headers:method==='POST'?{'Content-Type':'application/json'}:{},body:body?JSON.stringify(body):undefined,cache:'no-store'});const d=await r.json().catch(()=>({error:'Could not read the response.'}));if(!r.ok){if(r.status===401&&!['login','activate'].includes(action))showLogin();throw new Error(d.error||'Request failed.');}return d;};
@@ -11,8 +12,10 @@ let jobs=[],customers=[],vehicles=[],partsRequests=[],serviceCatalog=[],partsSet
 const params=new URLSearchParams(location.hash.slice(1)),requestedReference=params.get('request')||'',initialRecordId=params.get('record')||'';
 let pendingDeepLink=requestedReference,pendingRecordId=initialRecordId;
 const initialSection=params.get('view')||((requestedReference||initialRecordId)?'leads':'overview');if(params.has('activate')){activation={token:params.get('activate'),email:params.get('email')||''};history.replaceState(null,'',location.pathname);$('login-email').value=activation.email;$('login-email').readOnly=true;$('login-password').autocomplete='new-password';$('confirm-label').hidden=false;$('confirm-password').required=true;msg('login-title','Set up your account.');msg('login-submit','Create password & sign in');msg('login-subtitle','Choose a private password of at least 12 characters. Your activation link can be used once.');}
-function showLogin(){activation=null;closeCrmNav();$('login-email').readOnly=false;$('confirm-label').hidden=true;$('confirm-password').required=false;$('login-password').autocomplete='current-password';msg('login-title','Welcome back.');msg('login-submit','Sign in');$('login-screen').hidden=false;$('dashboard-screen').hidden=true;$('signout').hidden=true;jobs=[];selected=null;$('jobs-list').replaceChildren();$('detail-media').replaceChildren();}
-function showDashboard(email){ownerEmail=email;$('telegram-test').hidden=email!=='joshmobileinc@gmail.com';$('phone-alert-settings').hidden=email!=='joshmobileinc@gmail.com';activation=null;$('login-screen').hidden=true;$('dashboard-screen').hidden=false;$('signout').hidden=false;msg('admin-email',email);msg('today-date',new Date().toLocaleDateString('en-US',{timeZone:'America/New_York',weekday:'long',month:'long',day:'numeric'})+' · Eastern time');setSection(sectionConfig[initialSection]?initialSection:'overview','replace');if(email==='joshmobileinc@gmail.com')refreshPushStatus();load();loadCrm();}
+const isOwner=()=>isOwnerEmail(ownerEmail);
+function updateOwnerOnlyUi(){const owner=isOwner();$('telegram-test').hidden=!owner;$('phone-alert-settings').hidden=!owner;$('show-deleted').hidden=!owner;const trashNav=document.querySelector('#crm-nav [data-section="trash"]');if(trashNav)trashNav.hidden=!owner;if(!owner)hideRequestToast();}
+function showLogin(){activation=null;closeCrmNav();hideRequestToast();$('login-email').readOnly=false;$('confirm-label').hidden=true;$('confirm-password').required=false;$('login-password').autocomplete='current-password';msg('login-title','Welcome back.');msg('login-submit','Sign in');$('login-screen').hidden=false;$('dashboard-screen').hidden=true;$('signout').hidden=true;jobs=[];selected=null;$('jobs-list').replaceChildren();$('detail-media').replaceChildren();}
+function showDashboard(email){ownerEmail=email;updateOwnerOnlyUi();activation=null;$('login-screen').hidden=true;$('dashboard-screen').hidden=false;$('signout').hidden=false;msg('admin-email',email);msg('today-date',new Date().toLocaleDateString('en-US',{timeZone:'America/New_York',weekday:'long',month:'long',day:'numeric'})+' · Eastern time');setSection(sectionConfig[initialSection]?initialSection:'overview','replace');if(isOwner())refreshPushStatus();load();loadCrm();}
 const currencyInput=value=>Number.isSafeInteger(value)?(value/100).toFixed(2):'';
 const currencyDisplay=value=>Number.isSafeInteger(value)?new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(value/100):'Not quoted';
 function updateQuoteTotal(){
@@ -76,6 +79,7 @@ function confirmDiscard(){
  return !dirty()||window.confirm('You have unsaved changes. Leave this record and discard those changes?');
 }
 function setSection(next,historyMode='push'){
+ if(next==='trash'&&!isOwner())next='jobs';
  const config=sectionConfig[next];if(!config)return false;
  if(!confirmDiscard())return false;
  section=next;filter=config.filter;
@@ -100,9 +104,8 @@ function customerSearchText(customer){
  return [jobSearchText(customer),...vehicles.filter(vehicle=>vehicle.customerId===customer.id).map(vehicle=>jobSearchText(vehicle))].join(' ');
 }
 const statusLabel=status=>({requested:'New request',confirmed:'Confirmed',scheduled:'Scheduled',in_progress:'In progress',completed:'Completed',cancelled:'Cancelled',no_show:'No show'}[status]||status);
-const isWebsiteRequest=job=>job?.source!=='manual';
-const canSoftDeleteRequest=job=>Boolean(job&&!job.deletedAt&&isWebsiteRequest(job)&&['requested','cancelled'].includes(job.status));
-const canRestoreRequest=job=>Boolean(job?.deletedAt&&isWebsiteRequest(job));
+const canSoftDeleteRequest=job=>trashUiVisibility(ownerEmail,job).showDelete;
+const canRestoreRequest=job=>trashUiVisibility(ownerEmail,job).showRestore;
 function renderJobButton(j){
  const newest=(j.timeline||[]).filter(item=>item.kind!=='created').at(-1);
  const message=filter==='messages'&&newest?'<small>'+esc(newest.kind)+' · '+esc(newest.text)+'</small>':'';
@@ -125,7 +128,7 @@ function render(){
  const customerKeys=new Set(customers.filter(customer=>customer.status!=='archived').map(contactKey)),legacyContacts=contacts.filter(group=>!customerKeys.has(group.key));
  msg('count-new',requested.length);msg('count-upcoming',upcoming.length);msg('count-customers',customers.filter(customer=>customer.status!=='archived').length+legacyContacts.length);msg('count-done',jobs.filter(j=>j.status==='completed').length);
  msg('nav-count-leads',requested.length);msg('nav-count-appointments',upcoming.length);msg('nav-count-trash',trashed.length);
- const showingDeleted=filter==='trash',showDeleted=$('show-deleted');showDeleted.textContent=showingDeleted?'Hide deleted':'Show deleted'+(trashed.length?' ('+trashed.length+')':'');showDeleted.setAttribute('aria-pressed',String(showingDeleted));
+ const showingDeleted=filter==='trash',showDeleted=$('show-deleted');showDeleted.hidden=!trashUiVisibility(ownerEmail).showTrash;showDeleted.textContent=showingDeleted?'Hide deleted':'Show deleted'+(trashed.length?' ('+trashed.length+')':'');showDeleted.setAttribute('aria-pressed',String(showingDeleted));
  let html='',count=0;
  if(filter==='customers'){
   const items=customers.filter(customer=>customerSearchText(customer).includes(q)),legacy=legacyContacts.filter(group=>group.records.some(job=>jobSearchText(job).includes(q)));
@@ -263,6 +266,7 @@ function clearSelectedRequest(id){
 }
 function hideRequestToast(){clearTimeout(undoTimer);undoDelete=null;$('request-toast').hidden=true;}
 function showRequestToast(message,undoRecord=null){
+ if(!trashUiVisibility(ownerEmail).showUndo){hideRequestToast();return;}
  clearTimeout(undoTimer);undoDelete=undoRecord;msg('request-toast-message',message);$('undo-delete').hidden=!undoRecord;$('request-toast').hidden=false;undoTimer=window.setTimeout(hideRequestToast,12000);
 }
 async function modifyLead(action,item=selected,confirmation={}){
@@ -285,11 +289,11 @@ $('delete-request-form').onsubmit=async event=>{
  event.preventDefault();const item=deleteTarget;if(!item)return;$('confirm-delete-request').disabled=true;
  try{await trashWebsiteRequest(item);$('delete-request-dialog').close();}catch(error){msg('delete-request-message',error.message);}finally{$('confirm-delete-request').disabled=false;}
 };
-$('restore-lead').onclick=async()=>{try{await restoreWebsiteRequest(selected);setSection('leads','replace');}catch(error){msg('lead-action-message',error.message);}};
-$('undo-delete').onclick=async()=>{const item=undoDelete;if(!item)return;$('undo-delete').disabled=true;try{await restoreWebsiteRequest(item,{fromUndo:true});setSection('leads','replace');}catch(error){showRequestToast(error.message,item);}finally{$('undo-delete').disabled=false;}};
+$('restore-lead').onclick=async()=>{if(!isOwner())return;try{await restoreWebsiteRequest(selected);setSection('leads','replace');}catch(error){msg('lead-action-message',error.message);}};
+$('undo-delete').onclick=async()=>{if(!isOwner())return;const item=undoDelete;if(!item)return;$('undo-delete').disabled=true;try{await restoreWebsiteRequest(item,{fromUndo:true});setSection('leads','replace');}catch(error){showRequestToast(error.message,item);}finally{$('undo-delete').disabled=false;}};
 $('dismiss-request-toast').onclick=hideRequestToast;
 $('purge-lead').onclick=()=>{
- if(!selected?.deletedAt)return;
+ if(!isOwner()||!selected?.deletedAt)return;
  msg('purge-message','');$('purge-confirm-reference').value='';
  msg('purge-reference-label',selected.reference||selected.id);
  $('purge-dialog').showModal();
@@ -308,7 +312,7 @@ $('purge-form').onsubmit=async event=>{
 };
 $('login-form').onsubmit=async e=>{e.preventDefault();const button=$('login-submit');button.disabled=true;msg('login-message','Signing in…');try{if(activation&&$('login-password').value!==$('confirm-password').value)throw new Error('Passwords do not match.');const r=await api(activation?'activate':'login','POST',{email:$('login-email').value,password:$('login-password').value,...(activation?{token:activation.token}:{})});$('login-password').value='';$('confirm-password').value='';msg('login-message','');showDashboard(r.email);}catch(err){msg('login-message',err.message);}finally{button.disabled=false;}};
 $('signout').onclick=async()=>{try{await api('logout','POST',{});location.reload();}catch(e){msg('list-count',e.message);}};
-$('refresh-jobs').onclick=()=>load();$('search-jobs').oninput=render;$('show-deleted').onclick=()=>setSection(filter==='trash'?'jobs':'trash');
+$('refresh-jobs').onclick=()=>load();$('search-jobs').oninput=render;$('show-deleted').onclick=()=>{if(isOwner())setSection(filter==='trash'?'jobs':'trash');};
 $('crm-nav').querySelectorAll('[data-section]').forEach(button=>button.onclick=()=>setSection(button.dataset.section));
 $('back-overview').onclick=()=>setSection('overview');
 $('requests-overview').onclick=()=>setSection('overview');
@@ -477,7 +481,7 @@ $('install-owner-app').onclick=async()=>{
 window.addEventListener('beforeinstallprompt',event=>{event.preventDefault();installPrompt=event;$('install-owner-app').hidden=false;});
 window.addEventListener('appinstalled',()=>{$('install-owner-app').hidden=true;msg('push-alert-message','Josh Mobile Owner app installed. Sign in and enable alerts when ready.');});
 if('serviceWorker'in navigator)navigator.serviceWorker.register('/owner/service-worker.js',{scope:'/owner'}).catch(()=>{});
-if(!activation)api('session').then(r=>{ $('telegram-test').hidden=r.email!=='joshmobileinc@gmail.com';showDashboard(r.email);}).catch(()=>{});
+if(!activation)api('session').then(r=>showDashboard(r.email)).catch(()=>{});
 
 const DAYS=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
 async function loadAvailability(){
