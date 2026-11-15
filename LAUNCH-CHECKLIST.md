@@ -1,5 +1,18 @@
 # Launch checklist
 
+## Limited public vehicle intake — 2026-11-14
+
+- [x] Work-order follow-up committed before implementation.
+- [x] Public form, browser payload, server fingerprint, and new job persistence
+  exclude Trim, Engine, and Mileage while retaining historic records.
+- [x] Year, Make, Model, and VIN remain required; VIN whitespace normalization
+  and inline error behavior are covered.
+- [x] `npm test` passed (87 tests) on the final branch.
+- [x] `npm run build` passed on the final branch.
+- [ ] CodeRabbit review check completed.
+- [x] Preview screenshots intentionally remain with Grok Bot.
+- [ ] Owner reviews and merges PR #23. No deployment is authorized.
+
 ## Booking form mobile polish — 2026-11-13
 
 - [x] Work order committed before implementation.

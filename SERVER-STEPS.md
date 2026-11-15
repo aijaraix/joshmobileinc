@@ -1,5 +1,21 @@
 # Server steps
 
+## Limited public vehicle intake — 2026-11-14
+
+No server, Vercel environment, DNS, database, or notification configuration
+change is required. The public booking route now constructs an explicit
+allowlisted vehicle/request payload and therefore discards submitted Trim,
+Engine, and Mileage values. It continues to normalize VIN whitespace and case
+before validating and storing a new request.
+
+This is not a migration: legacy private job documents retain any existing Trim,
+Engine, and Mileage values and remain readable in the owner dashboard. Do not
+backfill, rewrite, or remove those fields. Do not deploy this branch; after
+owner review and merge, use the normal synthetic booking check only.
+
+Local verification completed on 2026-11-14: `npm test` (87 tests) and
+`npm run build` both passed.
+
 ## Booking form mobile polish — 2026-11-13
 
 No server, Vercel environment, DNS, database, or notification configuration

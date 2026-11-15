@@ -106,6 +106,8 @@ function customerSearchText(customer){
 const statusLabel=status=>({requested:'New request',confirmed:'Confirmed',scheduled:'Scheduled',in_progress:'In progress',completed:'Completed',cancelled:'Cancelled',no_show:'No show'}[status]||status);
 const canSoftDeleteRequest=job=>trashUiVisibility(ownerEmail,job).showDelete;
 const canRestoreRequest=job=>trashUiVisibility(ownerEmail,job).showRestore;
+const showLegacyVehicleFields=job=>job?.source!=='website'||['trim','engine','mileage'].some(key=>{const value=job?.[key];return value!==null&&value!==undefined&&String(value).trim()!=='';});
+function renderLegacyVehicleFields(job){const show=showLegacyVehicleFields(job);document.querySelectorAll('[data-legacy-vehicle-field]').forEach(field=>{field.hidden=!show;});}
 function renderJobButton(j){
  const newest=(j.timeline||[]).filter(item=>item.kind!=='created').at(-1);
  const message=filter==='messages'&&newest?'<small>'+esc(newest.kind)+' · '+esc(newest.text)+'</small>':'';
@@ -223,6 +225,7 @@ function choose(id,writeHistory=false){
  for(const [key,value]of Object.entries(details))msg(key,value);
  $('job-status-input').value=j.status;$('job-confirmed-at').value=easternInput(j.appointmentAt);$('job-duration').value=j.durationMinutes||60;
  $('edit-name').value=j.name||'';$('edit-phone').value=j.phone||'';$('edit-email').value=j.email||'';
+ renderLegacyVehicleFields(j);
  $('edit-year').value=j.year||'';$('edit-make').value=j.make||'';$('edit-model').value=j.model||'';$('edit-trim').value=j.trim||'';$('edit-engine').value=j.engine||'';$('edit-mileage').value=j.mileage??'';$('edit-license-plate').value=j.licensePlate||'';$('edit-vehicle-notes').value=j.vehicleNotes||'';
  renderJobVehicleOptions(j);
  $('edit-service').value=j.service||'';$('edit-description').value=j.description||'';
@@ -336,10 +339,11 @@ $('job-form').onsubmit=async event=>{
  event.preventDefault();if(!selected)return;
  $('save-job').disabled=true;
  try{
+  const legacyVehicleDetails=showLegacyVehicleFields(selected)?{trim:$('edit-trim').value,engine:$('edit-engine').value,mileage:$('edit-mileage').value}:{};
   const body={id:selected.id,version:selected.version,status:$('job-status-input').value,
    appointmentAt:easternISO($('job-confirmed-at').value),durationMinutes:Number($('job-duration').value),
    name:$('edit-name').value,phone:$('edit-phone').value,email:$('edit-email').value,
-   year:$('edit-year').value,make:$('edit-make').value,model:$('edit-model').value,trim:$('edit-trim').value,engine:$('edit-engine').value,mileage:$('edit-mileage').value,licensePlate:$('edit-license-plate').value,vehicleId:$('edit-vehicle-id').value,vehicleNotes:$('edit-vehicle-notes').value,
+   year:$('edit-year').value,make:$('edit-make').value,model:$('edit-model').value,...legacyVehicleDetails,licensePlate:$('edit-license-plate').value,vehicleId:$('edit-vehicle-id').value,vehicleNotes:$('edit-vehicle-notes').value,
    service:$('edit-service').value,description:$('edit-description').value,
    date:$('edit-preferred-date').value,time:$('edit-preferred-time').value,
    vin:$('job-vin-input').value,address:$('job-address-input').value,city:$('job-city-input').value,

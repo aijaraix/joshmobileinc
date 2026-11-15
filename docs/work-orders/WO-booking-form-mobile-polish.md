@@ -1,6 +1,6 @@
 # Work Order — Booking Form Mobile Polish
 
-**Status:** Follow-up in progress — limited vehicle intake
+**Status:** Follow-up complete; pending CodeRabbit check and owner review
 **Scope:** Public service-request form and authenticated owner request management only  
 **Safety:** No production deployment, merge, notification changes, customer contact, or public delete API
 
@@ -142,3 +142,20 @@ It does not replace or invoke the older separate permanent-removal control.
 - No migration, production/database/DNS/environment change, deployment, merge,
   notification delivery, or customer contact. Grok Bot owns preview screenshots;
   do not pursue the known account-level GitHub Actions billing failure.
+
+### Completion
+
+- Removed the retired vehicle inputs from the public form. The new browser
+  allowlist and server-side booking allowlist accept only Year, Make, Model,
+  VIN, and the existing non-vehicle request fields; a crafted retired field is
+  discarded before fingerprinting and persistence.
+- The VIN input accepts whitespace-formatted input before normalization, shows
+  a specific inline missing/invalid error, and preserves the 17-character
+  no-I/O/Q rule in both browser and server validation.
+- Historic values are not migrated, deleted, or overwritten. The owner detail
+  form hides retired inputs for a new website request and exposes them only for
+  a legacy record with stored values; private manual CRM vehicle support is
+  unchanged.
+- `npm test` passed with 87 tests and `npm run build` passed on 2026-11-14.
+- Screenshot capture remains assigned to Grok Bot. No deployment, merge,
+  configuration, production/data change, delivery, or customer contact occurred.

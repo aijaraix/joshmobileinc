@@ -418,15 +418,10 @@
 </datalist>
 <label class="full">Model<input name="model" required="" maxlength="80" placeholder="Accord">
 </label>
-<label>Trim <span class="optional">Optional</span><input name="trim" maxlength="80" placeholder="EX, XLT, Sport…">
-</label>
-<label>Engine <span class="optional">Optional</span><input name="engine" maxlength="100" placeholder="2.0L, V6, hybrid…">
-</label>
-<label>Approx. mileage <span class="optional">Optional</span><input name="mileage" type="number" inputmode="numeric" min="0" max="2000000" step="1" placeholder="85000">
-</label>
 <label class="full">Vehicle VIN <span class="required">Required</span>
-<input name="vin" required="" minlength="17" maxlength="17" pattern="[A-HJ-NPR-Za-hj-npr-z0-9]{17}" autocapitalize="characters" autocomplete="off" spellcheck="false" aria-describedby="vin-help" placeholder="17-character vehicle identification number">
+<input name="vin" required="" minlength="17" maxlength="34" pattern="[A-HJ-NPR-Za-hj-npr-z0-9]{17}" autocapitalize="characters" autocomplete="off" spellcheck="false" aria-describedby="vin-help vin-error" placeholder="17-character vehicle identification number">
 <span class="vin-help" id="vin-help">Needed for an accurate quote — find it on your dashboard or registration. Letters I, O and Q are not used.</span>
+<span class="vin-error" id="vin-error" role="alert" hidden=""></span>
 </label>
 <label class="full">What’s going on?<textarea name="description" required="" minlength="8" maxlength="1800" placeholder="Tell us about the work you need, any sounds or warning lights, and when it started.">
 </textarea>

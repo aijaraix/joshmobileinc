@@ -41,6 +41,8 @@ test('owner UI exposes V2/V2.5 controls and keeps manual supplier workflow expli
  assert(js.includes("api('create-customer'"));assert(js.includes("api('create-parts-request'"));assert(js.includes("api('approve-parts-estimate'"));
  assert(js.includes('function customerSearchText'));assert(js.includes('customerSearchText(customer).includes(q)'));
  assert(css.includes('.vehicle-card'));assert(css.includes('@media(max-width:650px)'));
- for(const name of ['trim','engine','mileage'])assert(booking.includes('name="'+name+'"'),name);
+ for(const name of ['trim','engine','mileage'])assert(!booking.includes('name="'+name+'"'),name);
+ assert(html.includes('data-legacy-vehicle-field'));
+ assert(js.includes('showLegacyVehicleFields'));
  assert(booking.includes('name="vin" required'));
 });

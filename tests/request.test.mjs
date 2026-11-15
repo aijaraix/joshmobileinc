@@ -1,19 +1,24 @@
-import test from 'node:test';import assert from 'node:assert/strict';import {SERVICES,LIMITS,easternToday,validateRequest,fileError,receiptMessage,deliveryLinks,normalizePhone,selfReferenceSMS,normalizeVin} from '../lib/request.mjs';import {normalizeVin as normalizePublicVin} from '../public/request.mjs';
+import test from 'node:test';import assert from 'node:assert/strict';import {SERVICES,LIMITS,easternToday,validateRequest,fileError,receiptMessage,deliveryLinks,normalizePhone,selfReferenceSMS,normalizeVin} from '../lib/request.mjs';import {normalizeVin as normalizePublicVin,validateRequest as validatePublicRequest} from '../public/request.mjs';
 const valid={vin:'1HGCM82633A004352',address:'123 Example Street',service:'brakes',year:'2018',make:'Honda',model:'Accord',description:'Brake noise while slowing down.',date:'2026-10-27',time:'Morning',city:'Northern Broward',locationType:'Come to my location',name:'Test Customer',phone:'202-555-0142',email:'test@example.com',preferredContact:'text',consent:true};
 const v=(d)=>validateRequest({...valid,...d},'2026-10-25');
+const publicV=(d)=>validatePublicRequest({...valid,...d},'2026-10-25');
 test('six specific services plus the unknown issue fallback',()=>{assert.equal(Object.keys(SERVICES).length,7);assert.equal(SERVICES.other,'Not sure / something else');for(const key of ['brakes','suspension','ignition','engine-filter','cabin-filter','inspection'])assert.ok(SERVICES[key]);});
 test('unknown issue fallback accepts a normal request',()=>assert.equal(v({service:'other'}),''));
 test('valid request accepted',()=>assert.equal(v({}),''));
-test('VIN is required, normalized, and excludes I, O and Q',()=>{
+test('VIN is required, normalized, and excludes I, O and Q in client and server validation',()=>{
  assert.match(v({vin:''}),/17-character VIN/);
  assert.match(v({vin:'BADVIN'}),/17-character VIN/);
  assert.match(v({vin:'1HGCM82633A00435I'}),/17-character VIN/);
+ assert.match(publicV({vin:''}),/17-character VIN/);
+ assert.match(publicV({vin:'BADVIN'}),/17-character VIN/);
+ assert.match(publicV({vin:'1HGCM82633A00435I'}),/17-character VIN/);
  assert.equal(normalizeVin(' 1hgcm82633a004352 '),'1HGCM82633A004352');
  assert.equal(normalizeVin('1hg cm826 33a004352'),'1HGCM82633A004352');
  assert.equal(normalizePublicVin('1hg cm826 33a004352'),'1HGCM82633A004352');
  assert.equal(v({vin:'1hg cm826 33a004352'}),'');
+ assert.equal(publicV({vin:'1hg cm826 33a004352'}),'');
 });
-test('optional trim, engine and mileage are retained only when valid',()=>{assert.equal(v({trim:'Sport',engine:'2.0L turbo',mileage:'85000'}),'');assert.match(v({mileage:'85.5'}),/mileage/);});
+test('retired booking vehicle fields are no longer validated',()=>{const retired={trim:'x'.repeat(81),engine:'x'.repeat(101),mileage:'85.5'};assert.equal(v(retired),'');assert.equal(publicV(retired),'');});
 for(const [name,d] of Object.entries({missingService:{service:''},unknownService:{service:'engine-rebuild'},badYear:{year:'999'},missingName:{name:''},missingCity:{city:''},shortDescription:{description:'bad'},pastDate:{date:'2026-10-24'},impossibleDate:{date:'2026-13-30'},overflowDate:{date:'2026-11-31'},missingDate:{date:''},missingTime:{time:''},badPhone:{phone:'123'},badEmail:{email:'nope'},noConsent:{consent:false},badLocation:{locationType:'walk in'}}))test('reject '+name,()=>assert.notEqual(v(d),''));
 test('today allowed as request, not confirmed availability',()=>assert.equal(v({date:'2026-10-25'}),''));
 test('email optional',()=>assert.equal(v({email:''}),''));
@@ -47,9 +52,15 @@ test('mobile intake has local make suggestions, an exact VIN helper, and focus-s
  assert.match(html,/<option value="Volkswagen">/);
  assert.match(html,/<option value="Volvo">/);
  assert.match(html,/name="vin"[^>]*required/);
+ assert.match(html,/name="vin"[^>]*maxlength="34"/);
  assert.match(html,/Needed for an accurate quote — find it on your dashboard or registration/);
+ assert.match(html,/id="vin-error"/);
+ assert.doesNotMatch(html,/name="(?:trim|engine|mileage)"/);
  assert.match(html,/<label class="full">Service location<select name="locationType">/);
+ assert.match(app,/const bookingDetails=source=>/);
+ assert.doesNotMatch(app,/Object\.fromEntries\(new FormData\(form\)\)/);
  assert.match(app,/vinInput\.addEventListener\('input'/);
+ assert.match(app,/vinInput\.addEventListener\('invalid'/);
  assert.match(app,/visualViewport\.addEventListener\('resize'/);
  assert.match(app,/scrollIntoView\(\{block:'center'/);
  assert.match(css,/scroll-margin-block:9rem/);

@@ -1,5 +1,27 @@
 # Status
 
+## 2026-11-14 — limited public vehicle intake
+
+Ready for owner review on `codex/booking-form-mobile-polish` / PR #23, pending
+the final CodeRabbit check.
+
+- The public booking form now asks for vehicle Year, Make, Model, and required
+  VIN only; Make suggestions remain local and VIN has an inline missing/invalid
+  error.
+- Browser payload construction and the public booking API use an allowlist, so
+  stale Trim, Engine, and Mileage values cannot be fingerprinted, stored, or
+  included in new-request notifications.
+- Historic values remain intact and readable in the private dashboard. The
+  retired input controls are hidden for a new website request and remain
+  available only where a legacy request has stored data.
+- Verification: `npm test` passed (87 tests) and `npm run build` passed on
+  2026-11-14.
+- Pending: final CodeRabbit review check only.
+
+No production, database, DNS, environment, notification delivery, customer
+contact, merge, or deployment action has occurred. Grok Bot owns the preview
+screenshots.
+
 ## 2026-11-13 — booking form mobile polish follow-up
 
 Ready for owner review on `codex/booking-form-mobile-polish`.

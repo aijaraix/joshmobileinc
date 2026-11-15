@@ -2,13 +2,15 @@
 
 ## Public service
 
-Customers complete one required form with year/make/model, a 17-character VIN,
-service address, preferred contact channel, date/time preference, and consent.
-The VIN is uppercased and cannot contain I, O, or Q; trim, engine, mileage, and
-private media remain optional. Existing requests without a VIN remain valid in
-the owner workspace. The six named service categories are available alongside
-the live “Not sure / something else” fallback for customers who cannot identify
-the issue. The server saves the private job first and then displays its
+Customers complete one required form with only year/make/model and a
+17-character VIN for vehicle identification, alongside service address,
+preferred contact channel, date/time preference, and consent. The VIN has all
+whitespace removed, is uppercased, and cannot contain I, O, or Q; Trim, Engine,
+and Mileage are not collected or stored for new public requests. Existing
+requests without a VIN remain valid in the owner workspace, and historical
+vehicle values remain readable there. The six named service categories are
+available alongside the live “Not sure / something else” fallback for customers
+who cannot identify the issue. The server saves the private job first and then displays its
 `JM-XXXXXXXX` receipt. SMS and WhatsApp are optional receipt actions only; a
 user can close either app and the saved request remains. A request is never an
 automatic reservation.
