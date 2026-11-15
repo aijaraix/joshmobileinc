@@ -16,7 +16,7 @@ Ready for owner review on `codex/booking-form-mobile-polish` / PR #23.
 - Verification: `npm test` passed (87 tests) and `npm run build` passed on
   2026-11-14.
 - Review: no CodeRabbit comments or review threads were present when checked
-  after the final branch update.
+  after the implementation update.
 
 No production, database, DNS, environment, notification delivery, customer
 contact, merge, or deployment action has occurred. Grok Bot owns the preview
