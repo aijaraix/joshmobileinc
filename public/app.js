@@ -1,13 +1,13 @@
 (async function(){
 'use strict';
-const {easternToday,validateRequest,fileError,receiptMessage,deliveryLinks,selfReferenceSMS}=await import('/request.mjs');
+const {easternToday,validateRequest,fileError,receiptMessage,deliveryLinks,selfReferenceSMS,normalizeVin}=await import('/request.mjs');
 const $=id=>document.getElementById(id);
 const menu=$('menu-toggle'),mobile=$('mobile-menu');
 menu.addEventListener('click',()=>{const open=menu.getAttribute('aria-expanded')!=='true';menu.setAttribute('aria-expanded',String(open));menu.setAttribute('aria-label',open?'Close menu':'Open menu');mobile.hidden=!open;});
 mobile.querySelectorAll('a').forEach(a=>a.addEventListener('click',()=>{mobile.hidden=true;menu.setAttribute('aria-expanded','false');menu.setAttribute('aria-label','Open menu');}));
 const form=$('booking-form'),review=$('request-review');
 const continuityKey='jm-intake-continuity-v1';
-let files=[],objectUrls=[],preparedData=null,requestId='',continuationProof='',onlineConnected=null,fileSignature='',savedRequest=null,received=new Set();
+let files=[],objectUrls=[],preparedData=null,preparedWebsite='',requestId='',continuationProof='',onlineConnected=null,fileSignature='',savedRequest=null,received=new Set();
 const track=(event,detail={})=>{const payload={event,...detail};document.dispatchEvent(new CustomEvent('joshmobile:event',{detail:payload}));if(Array.isArray(window.dataLayer))window.dataLayer.push(payload);};
 const random=()=>crypto.getRandomValues(new Uint8Array(32)).reduce((s,b)=>s+String.fromCharCode(b),'');
 const makeProof=()=>btoa(random()).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
@@ -16,6 +16,21 @@ const saveContinuity=reference=>{try{sessionStorage.setItem(continuityKey,JSON.s
 const previous=getContinuity();if(previous?.requestId&&previous?.continuationProof){requestId=previous.requestId;continuationProof=previous.continuationProof;$('resume-note').hidden=false;}
 fetch('/api/workspace',{cache:'no-store'}).then(r=>r.ok?r.json():null).then(c=>{onlineConnected=c?.connected===true;}).catch(()=>{});
 $('preferred-date').min=easternToday();form.elements.year.max=Number(easternToday().slice(0,4))+2;
+const vinInput=form.elements.vin;
+const bookingDetails=source=>({service:String(source.get('service')||''),year:String(source.get('year')||''),make:String(source.get('make')||''),model:String(source.get('model')||''),vin:normalizeVin(source.get('vin')||''),description:String(source.get('description')||''),date:String(source.get('date')||''),time:String(source.get('time')||''),city:String(source.get('city')||''),address:String(source.get('address')||''),locationType:String(source.get('locationType')||''),name:String(source.get('name')||''),phone:String(source.get('phone')||''),email:String(source.get('email')||''),preferredContact:String(source.get('preferredContact')||''),consent:source.has('consent')});
+const vinErrorMessage=value=>{const vin=normalizeVin(value);return !vin?'Enter your 17-character VIN. Letters I, O and Q are not used.':/^[A-HJ-NPR-Z0-9]{17}$/.test(vin)?'':'Enter a valid 17-character VIN (letters I, O and Q are not used).';};
+function showVinError(force=false){const message=vinErrorMessage(vinInput.value),visible=force||vinInput.getAttribute('aria-invalid')==='true';$('vin-error').textContent=visible?message:'';$('vin-error').hidden=!visible||!message;vinInput.setAttribute('aria-invalid',String(visible&&Boolean(message)));return message;}
+vinInput.addEventListener('input',()=>{const normalized=normalizeVin(vinInput.value);if(vinInput.value!==normalized){const cursor=Math.min(vinInput.selectionStart??normalized.length,normalized.length);vinInput.value=normalized;vinInput.setSelectionRange(cursor,cursor);}});
+vinInput.addEventListener('input',()=>{if(vinInput.getAttribute('aria-invalid')==='true')showVinError(true);});
+vinInput.addEventListener('invalid',()=>showVinError(true));
+const mobileViewport=matchMedia('(max-width: 700px)'),reduceMotion=matchMedia('(prefers-reduced-motion: reduce)');
+let focusRevealTimer=0;
+function revealFocusedControl(control,delay=120){
+ if(!mobileViewport.matches||document.activeElement!==control)return;
+ clearTimeout(focusRevealTimer);focusRevealTimer=window.setTimeout(()=>{if(document.activeElement===control)control.scrollIntoView({block:'center',inline:'nearest',behavior:reduceMotion.matches?'auto':'smooth'});},delay);
+}
+for(const control of form.querySelectorAll('input,select,textarea'))control.addEventListener('focus',()=>revealFocusedControl(control));
+if(window.visualViewport){const revealAfterViewportChange=()=>revealFocusedControl(document.activeElement,80);window.visualViewport.addEventListener('resize',revealAfterViewportChange);window.visualViewport.addEventListener('scroll',revealAfterViewportChange);window.addEventListener('pagehide',()=>{window.visualViewport.removeEventListener('resize',revealAfterViewportChange);window.visualViewport.removeEventListener('scroll',revealAfterViewportChange);});}
 const timeSelect=$('preferred-time'),availabilityNote=$('availability-note');
 let slots=null,availabilitySequence=0;
 async function loadSlots(){
@@ -60,7 +75,7 @@ async function saveRequest({renew=false}={}){
  if(!continuationProof)continuationProof=makeProof();
  $('submit-request').disabled=true;$('share-status').textContent=renew?'Refreshing secure upload access…':'Saving your service request…';
  try{
-  const response=await fetch('/api/booking',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({requestId,continuationProof,website:preparedData.website||'',details:preparedData,attachments:files.map(f=>({name:f.name,type:f.type,size:f.size}))}),cache:'no-store'});
+  const response=await fetch('/api/booking',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({requestId,continuationProof,website:preparedWebsite,details:preparedData,attachments:files.map(f=>({name:f.name,type:f.type,size:f.size}))}),cache:'no-store'});
   const result=await response.json().catch(()=>({}));if(!response.ok||!result.ok)throw new Error(result.error||'Unable to save your request.');
   savedRequest=result;received=new Set(result.receivedIndices||[]);saveContinuity(result.reference);showReceipt();
   if(!result.duplicate)track('request_saved',{reference:result.reference});track('message_prepared',{reference:result.reference});
@@ -83,7 +98,7 @@ async function uploadSelected(){
  }catch(error){$('share-status').textContent='Your request is saved, but attachments need another attempt. '+String(error.message||'');}
  finally{$('retry-uploads').disabled=false;showReceipt();}
 }
-form.addEventListener('submit',async event=>{event.preventDefault();const details=Object.fromEntries(new FormData(form));details.consent=!!details.consent;details.vin=String(details.vin||'').toUpperCase().replace(/\s/g,'');const error=validateRequest(details)||(Array.isArray(slots)&&!slots.includes(details.time)?'Please choose an available time.':'');showError('form-error',error);if(error)return;const nextFiles=JSON.stringify(files.map(file=>[file.name,file.type,file.size,file.lastModified]));if(preparedData&&(JSON.stringify(preparedData)!==JSON.stringify(details)||fileSignature!==nextFiles)){requestId='';continuationProof='';savedRequest=null;received.clear();try{sessionStorage.removeItem(continuityKey);}catch{}}preparedData=details;fileSignature=nextFiles;try{await saveRequest();}catch(err){showError('form-error',String(err.message||'Please retry your request.'));}});
+form.addEventListener('submit',async event=>{event.preventDefault();const source=new FormData(form),details=bookingDetails(source),website=String(source.get('website')||'');vinInput.value=details.vin;const vinError=showVinError(true),error=vinError||validateRequest(details)||(Array.isArray(slots)&&!slots.includes(details.time)?'Please choose an available time.':'');showError('form-error',error);if(error)return;const nextFiles=JSON.stringify(files.map(file=>[file.name,file.type,file.size,file.lastModified]));if(preparedData&&(JSON.stringify(preparedData)!==JSON.stringify(details)||preparedWebsite!==website||fileSignature!==nextFiles)){requestId='';continuationProof='';savedRequest=null;received.clear();try{sessionStorage.removeItem(continuityKey);}catch{}}preparedData=details;preparedWebsite=website;fileSignature=nextFiles;try{await saveRequest();}catch(err){showError('form-error',String(err.message||'Please retry your request.'));}});
 $('retry-uploads').addEventListener('click',async()=>{if(!savedRequest)return;if(!files.length){$('share-status').textContent='Your request is already saved. After a reload, choose the original files again to retry incomplete attachments.';return;}try{await saveRequest({renew:true});}catch(error){$('share-status').textContent='Your request is saved. '+String(error.message||'Unable to renew uploads.');}});
 $('edit-request').addEventListener('click',()=>{if(savedRequest)return;review.hidden=true;form.hidden=false;$('service').focus();});
 $('copy-reference').addEventListener('click',async()=>{try{await navigator.clipboard.writeText(savedRequest.reference);$('share-status').textContent='Reference copied.';}catch{$('share-status').textContent='Select the reference above to copy it.';}});

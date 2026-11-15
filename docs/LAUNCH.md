@@ -1,8 +1,19 @@
-# Launch and operating truth — October 29, 2026
+# Launch and operating truth — November 13, 2026
 
 ## Public service
 
-Customers complete one required form with year/make/model, service address, preferred contact channel, date/time preference, consent, and optional trim, engine, mileage, VIN, and private media. A supplied VIN must be valid, but VIN is not mandatory for every request. The six named service categories are available alongside the live “Not sure / something else” fallback for customers who cannot identify the issue. The server saves the private job first and then displays its `JM-XXXXXXXX` receipt. SMS and WhatsApp are optional receipt actions only; a user can close either app and the saved request remains. A request is never an automatic reservation.
+Customers complete one required form with only year/make/model and a
+17-character VIN for vehicle identification, alongside service address,
+preferred contact channel, date/time preference, and consent. The VIN has all
+whitespace removed, is uppercased, and cannot contain I, O, or Q; Trim, Engine,
+and Mileage are not collected or stored for new public requests. Existing
+requests without a VIN remain valid in the owner workspace, and historical
+vehicle values remain readable there. The six named service categories are
+available alongside the live “Not sure / something else” fallback for customers
+who cannot identify the issue. The server saves the private job first and then displays its
+`JM-XXXXXXXX` receipt. SMS and WhatsApp are optional receipt actions only; a
+user can close either app and the saved request remains. A request is never an
+automatic reservation.
 
 Files are capped at six, 15 MB each, 30 MB combined. Supported secure uploads are JPG, PNG, WebP, MP4, MOV, and WebM. HEIC receives conversion guidance. A reload cannot restore an old browser file selection; the receipt explains that files must be selected again to retry incomplete uploads.
 

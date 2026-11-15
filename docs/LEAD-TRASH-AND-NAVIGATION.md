@@ -8,14 +8,26 @@
 5. Direct private /owner#request=JM- links remain supported; the reference is not an authentication credential.
 
 ## Lead deletion
-- From a requested or cancelled lead, select Move lead to Trash; confirm the name and reference.
-- The lead disappears from active requests and counts, but stays in Trash for restoration.
-- Trash provides Restore and Delete permanently. Permanent deletion requires typing the exact reference. The server additionally enforces authentication, staff-only access, status, version, same-origin, rate limiting and explicit confirmation. It removes that one job, associated private attachments and its reference index.
+- Josh can select **Delete** from a website request row or its detail view when
+  the request is still requested or cancelled. The confirmation moves only that
+  request to Trash; it does not delete its linked customer, vehicle, other jobs,
+  media, or history.
+- The request disappears from active requests and counts, but stays in Trash for
+  restoration. An Undo toast appears immediately after a soft delete, and **Show
+  deleted** opens the Trash filter.
+- Restore is owner-only and returns the same record to active lists. The public
+  booking API has no delete method. The older permanent-removal control remains
+  separate in Trash and requires an exact reference plus server-side `DELETE`
+  confirmation; it is not the normal Delete action.
 - Confirmed and completed appointments cannot be deleted as leads. Cancel a confirmed job first. Other customer jobs are not automatically deleted even when contact information matches.
 - An incomplete permanent deletion leaves a pending-purge record for retry, not restoration after files may have been removed.
 - No bulk deletion or automatic synthetic-record deletion. Do not put customer details in public GitHub screenshots.
 
 ## Verification
-- Node tests cover unauthorized deletion, cross-site denial, stale version, reference checks, Trash/Restore, file removal and confirmed appointment protection.
-- Isolated 390px browser verification confirmed New Requests navigation, dossier opening, Android/browser Back, Overview, Trash, Restore and no horizontal overflow, using synthetic data only.
+- Node tests cover unauthorized deletion, cross-site denial, owner-only soft
+  delete/restore, a public-delete-method denial, linked-record preservation,
+  stale version, reference checks, and confirmed-appointment protection.
+- Use the synthetic 390px browser harness before release to confirm the list
+  Delete control, confirmation dialog, Undo, Trash filter, and Restore without
+  touching a customer record.
 - Production admin access must be separately verified with an authorized session; a synthetic browser test never replaces live customer-data readback.

@@ -90,3 +90,10 @@ button,a,summary{-webkit-tap-highlight-color:transparent;touch-action:manipulati
  .supplier-links a{font-size:12px;justify-content:center;text-align:center}
  .price-summary{font-size:13px}
 }
+
+/* Owner-only request recovery controls. */
+.list-filter-actions{padding:0 23px 6px}.list-filter-actions .outline{display:inline-flex;min-height:44px;align-items:center;background:#fff}
+.job-list-row{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:stretch;border-bottom:1px solid #edf2f8}.job-list-row .job-item{border-bottom:0;min-width:0}.list-delete{align-self:center;min-width:74px;margin:12px 12px 12px 0;padding:9px 10px;border-radius:9px;font-weight:800}
+.request-delete-dialog{border:1px solid #cbdced;border-radius:18px;box-shadow:0 25px 65px #102b5040;padding:clamp(20px,5vw,32px);width:min(94vw,500px);max-height:85vh;overflow:auto;color:#112e50}.request-delete-dialog h2{margin:0 0 12px;font-size:22px;line-height:1.25}.request-delete-dialog p{line-height:1.55}.delete-request-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:20px}.delete-request-actions button{min-height:44px;flex:1}
+.request-toast{position:fixed;z-index:100;left:50%;bottom:max(18px,env(safe-area-inset-bottom));transform:translateX(-50%);display:flex;align-items:center;gap:10px;width:min(520px,calc(100vw - 32px));padding:13px 14px;border:1px solid #b7d3ef;border-radius:13px;background:#0a3266;color:#fff;box-shadow:0 16px 38px #071f3f55}.request-toast span{flex:1;font-size:13px;font-weight:700}.request-toast .outline{min-height:40px;border-color:#a8d5ff;background:#fff;color:#0a3266}.toast-dismiss{width:40px;min-height:40px;border:0;border-radius:8px;background:transparent;color:#fff;font-size:24px;line-height:1}
+@media(max-width:650px){.list-filter-actions{padding:0 16px 6px}.job-list-row{grid-template-columns:minmax(0,1fr) auto}.job-list-row .job-item{border-radius:0}.list-delete{min-width:68px;margin:12px 10px 12px 0}.delete-request-actions{flex-direction:column}.request-toast{width:calc(100vw - 24px);bottom:max(12px,env(safe-area-inset-bottom));align-items:flex-start}.request-toast .outline{flex:none}}
