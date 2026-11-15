@@ -25,12 +25,16 @@ vinInput.addEventListener('input',()=>{if(vinInput.getAttribute('aria-invalid')=
 vinInput.addEventListener('invalid',()=>showVinError(true));
 const mobileViewport=matchMedia('(max-width: 700px)'),reduceMotion=matchMedia('(prefers-reduced-motion: reduce)');
 let focusRevealTimer=0;
+function focusedControlIsOffscreen(control){
+ const rect=control.getBoundingClientRect(),vv=window.visualViewport,top=vv?rect.top-vv.offsetTop:rect.top,bottom=vv?rect.bottom-vv.offsetTop:rect.bottom,height=vv?vv.height:window.innerHeight,pad=12;
+ return top<pad||bottom>height-pad;
+}
 function revealFocusedControl(control,delay=120){
- if(!mobileViewport.matches||document.activeElement!==control)return;
- clearTimeout(focusRevealTimer);focusRevealTimer=window.setTimeout(()=>{if(document.activeElement===control)control.scrollIntoView({block:'center',inline:'nearest',behavior:reduceMotion.matches?'auto':'smooth'});},delay);
+ if(!mobileViewport.matches||!control||document.activeElement!==control)return;
+ clearTimeout(focusRevealTimer);focusRevealTimer=window.setTimeout(()=>{if(document.activeElement!==control||!focusedControlIsOffscreen(control))return;control.scrollIntoView({block:'nearest',inline:'nearest',behavior:reduceMotion.matches?'auto':'smooth'});},delay);
 }
 for(const control of form.querySelectorAll('input,select,textarea'))control.addEventListener('focus',()=>revealFocusedControl(control));
-if(window.visualViewport){const revealAfterViewportChange=()=>revealFocusedControl(document.activeElement,80);window.visualViewport.addEventListener('resize',revealAfterViewportChange);window.visualViewport.addEventListener('scroll',revealAfterViewportChange);window.addEventListener('pagehide',()=>{window.visualViewport.removeEventListener('resize',revealAfterViewportChange);window.visualViewport.removeEventListener('scroll',revealAfterViewportChange);});}
+if(window.visualViewport){let lastViewportHeight=window.visualViewport.height;const revealAfterKeyboard=()=>{const height=window.visualViewport.height,delta=Math.abs(height-lastViewportHeight);lastViewportHeight=height;if(delta<120)return;revealFocusedControl(document.activeElement,80);};window.visualViewport.addEventListener('resize',revealAfterKeyboard);window.addEventListener('pagehide',()=>window.visualViewport.removeEventListener('resize',revealAfterKeyboard));}
 const timeSelect=$('preferred-time'),availabilityNote=$('availability-note');
 let slots=null,availabilitySequence=0;
 async function loadSlots(){
