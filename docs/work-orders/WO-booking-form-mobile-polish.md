@@ -1,6 +1,6 @@
 # Work Order — Booking Form Mobile Polish
 
-**Status:** Follow-up complete; ready for owner review
+**Status:** Follow-up in progress — limited vehicle intake
 **Scope:** Public service-request form and authenticated owner request management only  
 **Safety:** No production deployment, merge, notification changes, customer contact, or public delete API
 
@@ -111,3 +111,34 @@ It does not replace or invoke the older separate permanent-removal control.
 - `npm test` passed with 87 tests and `npm run build` passed on 2026-11-13.
 - The known account-level GitHub Actions test-build failure was intentionally
   left untouched. Grok Bot owns SSO-preview screenshot capture.
+
+## Follow-up — limited public vehicle intake (2026-11-14)
+
+### Scope
+
+- New public service requests collect only **Year**, **Make**, **Model**, and a
+  mandatory VIN. Year, Make, Model, and VIN remain required; Make keeps its
+  local autocomplete suggestions.
+- Remove Trim, Engine, and Mileage from the public form, browser and server
+  validation, new-request payload construction, and new-request notification
+  content. New requests must not persist those values even if an obsolete or
+  crafted client submits them.
+- Retain stored Trim, Engine, and Mileage values without a schema change or
+  data cleanup. Historical request records may continue to show those values in
+  the authenticated owner dashboard.
+- VIN normalization continues to remove all whitespace and uppercase the
+  result. The public form must present an inline error when the VIN is missing
+  or invalid.
+
+### Acceptance and safety
+
+- Add coverage proving the public form does not render or require Trim, Engine,
+  or Mileage, and that public client and server validation require a normalized
+  valid VIN.
+- Verify the server drops obsolete vehicle fields from a new public request
+  while retaining old stored records unchanged.
+- Update operational status, server steps, and launch checklist. Run `npm test`
+  and `npm run build` locally.
+- No migration, production/database/DNS/environment change, deployment, merge,
+  notification delivery, or customer contact. Grok Bot owns preview screenshots;
+  do not pursue the known account-level GitHub Actions billing failure.
