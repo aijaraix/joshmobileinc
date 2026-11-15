@@ -62,7 +62,10 @@ test('mobile intake has local make suggestions, an exact VIN helper, and focus-s
  assert.match(app,/vinInput\.addEventListener\('input'/);
  assert.match(app,/vinInput\.addEventListener\('invalid'/);
  assert.match(app,/visualViewport\.addEventListener\('resize'/);
- assert.match(app,/scrollIntoView\(\{block:'center'/);
+ assert.doesNotMatch(app,/visualViewport\.addEventListener\('scroll'/);
+ assert.match(app,/delta<120/);
+ assert.match(app,/focusedControlIsOffscreen/);
+ assert.match(app,/scrollIntoView\(\{block:'nearest'/);
  assert.match(css,/scroll-margin-block:9rem/);
  assert.match(css,/\.field-grid \.full\{grid-column:1\/-1\}/);
 });
