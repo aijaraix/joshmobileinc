@@ -2,7 +2,7 @@
 
 ## 2026-11-15 — private owner pricing workspace
 
-Ready for owner review on `codex/josh-admin-pricing-20261115`.
+Ready for owner review on `codex/josh-admin-pricing-20261115` / PR #25.
 
 - The private `/owner#view=pricing` workspace now has a first-class Pricing
   navigation item and a Settings link. It lists services and common parts with
@@ -16,6 +16,8 @@ Ready for owner review on `codex/josh-admin-pricing-20261115`.
   rewritten by catalog changes.
 - Verification: `npm test` passed (88 tests) and `npm run build` passed on
   2026-11-15.
+- Review: no CodeRabbit comments, review submissions, or unresolved review
+  threads were present when checked after PR publication.
 
 No production Blob, database, DNS, environment, notification, customer-contact,
 merge, or deployment action has occurred.

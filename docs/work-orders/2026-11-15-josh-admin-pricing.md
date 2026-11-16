@@ -62,3 +62,6 @@ the public website.
   Catalog saves do not rewrite stored job or quote snapshots.
 - Verification on 2026-11-15: `npm test` passed (88 tests); `npm run build`
   passed.
+- Review: PR #25 is open against `main`; no CodeRabbit comments, review
+  submissions, or unresolved review threads were present when checked after
+  publication.
