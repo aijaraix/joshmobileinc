@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {randomUUID,randomBytes} from 'node:crypto';
 import admin from '../api/admin.mjs';import booking from '../api/booking.mjs';import media from '../api/media.mjs';
-import {digest} from '../lib/auth.mjs';import {jobById,putMedia,mediaPath} from '../lib/private-store.mjs';
+import {digest} from '../lib/auth.mjs';import {jobById,putMedia,mediaPath,readJson,serviceCatalogPath,writeJson} from '../lib/private-store.mjs';
 export async function call(handler,action,body,cookie='',method='POST',origin='https://joshmobileinc.com'){
 const req={method,url:'/api/admin?action='+action,query:{action},headers:{origin,'content-type':'application/json','x-vercel-forwarded-for':'192.0.2.44',...(cookie?{cookie}:{})},body};const result={status:200,headers:{},data:null};const res={setHeader(k,v){result.headers[k.toLowerCase()]=v;},status(n){result.status=n;return this;},json(v){result.data=v;return result;},write(v){result.chunks??=[];result.chunks.push(v);},end(v){result.data=v||result.data;return result;}};await handler(req,res);return result;}
 export async function scenario(){
@@ -78,6 +78,13 @@ check('Historical job stores accurate cents, total and paid balance',()=>assert.
 r=await call(admin,'update-customer',{id:standaloneCustomer.id,version:standaloneCustomer.version,name:'Synthetic Fleet Customer Updated'},managerCookie);
 const preservedHistoricalJob=(await jobById(crmJobId)).value;
 check('Staff can edit a customer profile without overwriting historical job snapshot',()=>{assert.equal(r.status,200);assert.equal(r.data.customer.name,'Synthetic Fleet Customer Updated');assert.equal(preservedHistoricalJob.name,'Synthetic Fleet Customer');});const updatedCustomer=r.data.customer;
+r=await call(admin,'catalog-save',{items:[{id:'brake-service',kind:'service',name:'Front brake replacement',cost:'75.25',defaultParts:'145.50',defaultLabor:'100.00',active:true},{id:'brake-pad-set',kind:'part',name:'Brake pad set',cost:'42.00',defaultParts:'79.99',defaultLabor:'',active:false}]},managerCookie);
+check('Staff catalog stores service and common-part cost, customer price, margin inputs, and archive state',()=>assert.equal(r.status,200)&&r.data.serviceCatalog[0].costCents===7525&&r.data.serviceCatalog[0].defaultPartsCents===14550&&r.data.serviceCatalog[1].active===false);
+const afterCatalogSave=(await jobById(crmJobId)).value;
+check('Saving catalog pricing does not rewrite existing job price snapshots',()=>assert.equal(afterCatalogSave.partsChargeCents,crmJob.partsChargeCents)&&assert.equal(afterCatalogSave.laborChargeCents,crmJob.laborChargeCents)&&assert.equal(afterCatalogSave.supplierPartsCostCents,crmJob.supplierPartsCostCents));
+await writeJson(serviceCatalogPath,{items:[{id:'legacy-service',name:'Legacy service',active:true,defaultPartsCents:8800,defaultLaborCents:4500}]},(await readJson(serviceCatalogPath))?.etag);
+r=await call(admin,'crm',null,managerCookie,'GET');
+check('Legacy Blob catalog rows without a cost still load as services',()=>assert.equal(r.status,200)&&r.data.serviceCatalog[0].kind==='service'&&r.data.serviceCatalog[0].costCents===null&&r.data.serviceCatalog[0].defaultPartsCents===8800);
 r=await call(admin,'parts-settings',{markupPercent:'25',defaultLabor:'85.00'},managerCookie);
 check('Staff can configure manual parts estimate defaults',()=>assert.equal(r.status,200)&&r.data.partsSettings.markupPercent===25);
 r=await call(admin,'create-parts-request',{jobId:crmJobId,requestedPart:'Front brake pads',partCategory:'brake parts',quantity:1,compatibilityStatus:'unverified',notes:'Check brake package before quote.'},managerCookie);

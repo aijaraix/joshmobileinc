@@ -26,13 +26,13 @@ const ownerEmail=()=>ADMINS[0];
 const activeStatuses=new Set(APPOINTMENT_STATUSES);
 const websiteRequest=job=>job?.source!=='manual';
 const DEFAULT_SERVICE_CATALOG=Object.freeze([
- {id:'brakes',name:'Brake pads & rotors',active:true,defaultPartsCents:null,defaultLaborCents:null},
- {id:'suspension',name:'Suspension',active:true,defaultPartsCents:null,defaultLaborCents:null},
- {id:'ignition',name:'Spark plugs & ignition coils',active:true,defaultPartsCents:null,defaultLaborCents:null},
- {id:'engine-filter',name:'Engine air filter',active:true,defaultPartsCents:null,defaultLaborCents:null},
- {id:'cabin-filter',name:'Cabin air filter',active:true,defaultPartsCents:null,defaultLaborCents:null},
- {id:'inspection',name:'Vehicle inspection',active:true,defaultPartsCents:null,defaultLaborCents:null},
- {id:'other',name:'Not sure / something else',active:true,defaultPartsCents:null,defaultLaborCents:null}
+ {id:'brakes',kind:'service',name:'Brake pads & rotors',active:true,costCents:null,defaultPartsCents:null,defaultLaborCents:null},
+ {id:'suspension',kind:'service',name:'Suspension',active:true,costCents:null,defaultPartsCents:null,defaultLaborCents:null},
+ {id:'ignition',kind:'service',name:'Spark plugs & ignition coils',active:true,costCents:null,defaultPartsCents:null,defaultLaborCents:null},
+ {id:'engine-filter',kind:'service',name:'Engine air filter',active:true,costCents:null,defaultPartsCents:null,defaultLaborCents:null},
+ {id:'cabin-filter',kind:'service',name:'Cabin air filter',active:true,costCents:null,defaultPartsCents:null,defaultLaborCents:null},
+ {id:'inspection',kind:'service',name:'Vehicle inspection',active:true,costCents:null,defaultPartsCents:null,defaultLaborCents:null},
+ {id:'other',kind:'service',name:'Not sure / something else',active:true,costCents:null,defaultPartsCents:null,defaultLaborCents:null}
 ]);
 
 async function startSession(email,hash,res){
@@ -55,14 +55,15 @@ const requiresFutureSlot=status=>activeStatuses.has(status);
 
 function normalizeCatalogItem(input={},prior={}){
  const id=text(input.id===undefined?prior.id||'':input.id,80).toLowerCase().replace(/[^a-z0-9_-]/g,'-').replace(/-+/g,'-').replace(/^-|-$/g,'');
- assert(id,'Service catalog ID is required.',400);
- const name=text(input.name===undefined?prior.name||'':input.name,100);assert(name,'Enter a service name.',400);
+ assert(id,'Catalog item ID is required.',400);
+ const kind=String(input.kind===undefined?prior.kind||'service':input.kind);assert(['service','part'].includes(kind),'Choose service or common part.',400);
+ const name=text(input.name===undefined?prior.name||'':input.name,100);assert(name,'Enter a catalog item name.',400);
  const parse=(key,stored)=>{const raw=input[key]===undefined?(prior[stored]===null||prior[stored]===undefined?'':(prior[stored]/100).toFixed(2)):input[key];if(raw===''||raw===null)return null;assert(/^\d{1,7}(?:\.\d{1,2})?$/.test(String(raw).trim()),`${key} must be a nonnegative dollar amount with up to two decimals.`,400);return Math.round(Number(raw)*100);};
- return {id,name,active:input.active===undefined?prior.active!==false:Boolean(input.active),defaultPartsCents:parse('defaultParts','defaultPartsCents'),defaultLaborCents:parse('defaultLabor','defaultLaborCents')};
+ return {id,kind,name,active:input.active===undefined?prior.active!==false:Boolean(input.active),costCents:parse('cost','costCents'),defaultPartsCents:parse('defaultParts','defaultPartsCents'),defaultLaborCents:parse('defaultLabor','defaultLaborCents')};
 }
 async function catalog(){const row=await readJson(serviceCatalogPath),input=Array.isArray(row?.value?.items)?row.value.items:DEFAULT_SERVICE_CATALOG;return input.map(item=>normalizeCatalogItem(item,item));}
 async function saveCatalog(items,user){
- assert(Array.isArray(items)&&items.length>0&&items.length<=100,'Save between 1 and 100 services.',400);
+ assert(Array.isArray(items)&&items.length>0&&items.length<=100,'Save between 1 and 100 catalog items.',400);
  const normalized=items.map(item=>normalizeCatalogItem(item,item));assert(new Set(normalized.map(item=>item.id)).size===normalized.length,'Each service catalog ID must be unique.',400);
  const previous=await readJson(serviceCatalogPath),value={items:normalized,updatedAt:now(),updatedBy:user};await writeJson(serviceCatalogPath,value,previous?.etag);await touchJobs('service-catalog');return value.items;
 }
