@@ -1,5 +1,25 @@
 # Status
 
+## 2026-11-15 — private owner pricing workspace
+
+Ready for owner review on `codex/josh-admin-pricing-20261115`.
+
+- The private `/owner#view=pricing` workspace now has a first-class Pricing
+  navigation item and a Settings link. It lists services and common parts with
+  cost, customer price, optional default labor, live dollar/percent margin, and
+  archive through the existing Active flag.
+- Catalog records now support optional `costCents` and a service/common-part
+  type while retaining existing customer-price and labor cents fields. Older
+  Blob rows without cost load as services with a null cost and can be saved.
+- Selecting an active service fills only empty quoted-parts, quoted-labor, and
+  actual-parts-cost fields. Existing job and supplier-quote snapshots are not
+  rewritten by catalog changes.
+- Verification: `npm test` passed (88 tests) and `npm run build` passed on
+  2026-11-15.
+
+No production Blob, database, DNS, environment, notification, customer-contact,
+merge, or deployment action has occurred.
+
 ## 2026-11-14 — limited public vehicle intake
 
 Ready for owner review on `codex/booking-form-mobile-polish` / PR #23.

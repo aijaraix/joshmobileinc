@@ -1,6 +1,6 @@
 # Work Order — Owner Pricing Workspace
 
-**Status:** In progress  
+**Status:** Implemented; verification passed
 **Branch:** `codex/josh-admin-pricing-20261115` from `main`  
 **Scope:** Authenticated owner workspace only (`/owner#view=pricing`)
 
@@ -47,3 +47,18 @@ the public website.
 - `STATUS.md` and `docs/OWNER-OPERATIONS.md` document the Pricing page path
   and its cost/price fields.
 - Address any CodeRabbit comments before reporting.
+
+## Implementation notes
+
+- Added the private `/owner#view=pricing` navigation and Settings link. The
+  Pricing page uses the existing `catalog-save` and `parts-settings` APIs and
+  their unchanged private storage paths.
+- Catalog items now have optional `costCents` and a `kind` (`service` or
+  `part`) while retaining `defaultPartsCents`, `defaultLaborCents`, and the
+  existing `active` archive flag. Legacy items with no cost or kind normalize
+  to a service with a null cost; no Blob migration or production write ran.
+- The UI shows live price-minus-cost dollar/percent margin, an optional markup
+  helper, and blank-field-only catalog defaults for jobs and supplier quotes.
+  Catalog saves do not rewrite stored job or quote snapshots.
+- Verification on 2026-11-15: `npm test` passed (88 tests); `npm run build`
+  passed.

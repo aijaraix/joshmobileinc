@@ -31,6 +31,14 @@ Use **Add appointment / job** to link an existing customer and vehicle, create a
 
 In **Estimates and pricing**, enter staff-recorded amounts only. The dashboard stores quoted parts/labor, job charges, fees, discounts, tax, final total, amount paid, payment state, and outstanding balance as cents. It does not charge a card, issue an invoice, calculate a filing obligation, or send a receipt.
 
+## Pricing
+
+Open **Pricing** from the owner sidebar, or use **Settings → Service catalog & parts estimate defaults → Open Pricing** (`/owner#view=pricing`). This private page is not published on the customer website.
+
+For each **Service** or **Common part**, enter its name, **His cost**, **Customer price**, and, when useful, a default labor amount. Cost and customer price are stored as integer cents. The page shows the live dollar margin and margin percentage (customer price minus cost); the optional global parts markup is only a helper for choosing a customer price and never replaces an item’s entered price.
+
+Uncheck **Active** to archive an item. Archived items remain saved but are left out of new service and catalog-item choices. Selecting an active catalog service while creating or editing a job fills only blank quoted parts, quoted labor, and actual parts-cost fields. Those values remain editable, and catalog edits never change an existing saved job or supplier quote.
+
 ## Parts & Suppliers
 
 Create a **parts lookup task** from a job only when replacement research is needed. Record the actual vehicle facts, part numbers, supplier, price, availability, source URL, and compatibility state. Use supplier sites manually through Josh's own authorized account. No supplier API, live inventory, automatic fitment result, scraper, purchase order, or price guarantee is active.

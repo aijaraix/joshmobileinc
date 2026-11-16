@@ -85,6 +85,8 @@ check('Saving catalog pricing does not rewrite existing job price snapshots',()=
 await writeJson(serviceCatalogPath,{items:[{id:'legacy-service',name:'Legacy service',active:true,defaultPartsCents:8800,defaultLaborCents:4500}]},(await readJson(serviceCatalogPath))?.etag);
 r=await call(admin,'crm',null,managerCookie,'GET');
 check('Legacy Blob catalog rows without a cost still load as services',()=>assert.equal(r.status,200)&&r.data.serviceCatalog[0].kind==='service'&&r.data.serviceCatalog[0].costCents===null&&r.data.serviceCatalog[0].defaultPartsCents===8800);
+r=await call(admin,'catalog-save',{items:[{id:'legacy-service',kind:'service',name:'Legacy service',cost:'',defaultParts:'88.00',defaultLabor:'45.00',active:true}]},managerCookie);
+check('Legacy Blob catalog rows without a cost remain saveable',()=>assert.equal(r.status,200)&&r.data.serviceCatalog[0].costCents===null&&r.data.serviceCatalog[0].defaultLaborCents===4500);
 r=await call(admin,'parts-settings',{markupPercent:'25',defaultLabor:'85.00'},managerCookie);
 check('Staff can configure manual parts estimate defaults',()=>assert.equal(r.status,200)&&r.data.partsSettings.markupPercent===25);
 r=await call(admin,'create-parts-request',{jobId:crmJobId,requestedPart:'Front brake pads',partCategory:'brake parts',quantity:1,compatibilityStatus:'unverified',notes:'Check brake package before quote.'},managerCookie);
