@@ -31,7 +31,13 @@ test('owner install and notification icons have full PNG fallbacks in the blue b
  assert.deepEqual([...readFileSync('public/assets/josh-mobile-touch-icon-blue-v4.png').subarray(0,8)],[137,80,78,71,13,10,26,10]);
  const icon=readFileSync('public/owner/app-icon.svg','utf8');
  assert(icon.includes('fill="#0a3266"')&&icon.includes('fill="#66bdff"')&&icon.includes('>JM</text>'));
- assert.match(worker,/jm-owner-shell-v2/);
+ assert.match(worker,/const CACHE='jm-owner-shell-v3'/);
+ assert.match(worker,/\/owner\/catalog-pricing\.mjs/);
+ assert.match(worker,/const networkFirst=async request=>/);
+ assert.match(worker,/await cache\.put\(request,response\.clone\(\)\)/);
+ assert.match(worker,/return await caches\.match\(request\)\|\|new Response\('Offline'/);
+ assert.match(worker,/url\.pathname\.startsWith\('\/api\/'\)/);
+ assert.doesNotMatch(worker,/cached\|\|fetch\(request\)/);
  assert.match(worker,/icon:'\/owner\/app-icon-192\.png',badge:'\/owner\/app-icon-192\.png'/);
 });
 
@@ -50,4 +56,7 @@ test('owner CRM navigation, filters, and dossier actions meet 44px touch targets
  assert.match(css,/\.crm-sidebar nav button\{[^}]*min-height:44px/);
  assert.match(css,/\.segmented button\{min-height:44px/);
  assert.match(css,/\.job-actions a\{white-space:normal;text-align:center;min-height:44px\}/);
+ const jobs=html.indexOf('data-section="jobs"'),pricing=html.indexOf('data-section="pricing"'),trash=html.indexOf('data-section="trash"');
+ assert(jobs<pricing&&pricing<trash,'Pricing follows Jobs in the owner navigation');
+ assert.match(html,/data-go-section="pricing">Open Pricing/);
 });

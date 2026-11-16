@@ -1,12 +1,22 @@
 'use strict';
-const CACHE='jm-owner-shell-v2';
-const SHELL=['/owner','/owner/','/owner/dashboard.css','/owner/dashboard.js','/owner/manifest.webmanifest','/owner/app-icon.svg','/owner/app-icon-192.png','/owner/app-icon-512.png','/assets/jm-mark.svg','/assets/josh-mobile-touch-icon-blue-v4.png'];
+const CACHE='jm-owner-shell-v3';
+const SHELL=['/owner','/owner/','/owner/dashboard.css','/owner/dashboard.js','/owner/crm-model.mjs','/owner/owner-access.mjs','/owner/catalog-pricing.mjs','/owner/manifest.webmanifest','/owner/app-icon.svg','/owner/app-icon-192.png','/owner/app-icon-512.png','/assets/jm-mark.svg','/assets/josh-mobile-touch-icon-blue-v4.png'];
 self.addEventListener('install',event=>event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(SHELL)).then(()=>self.skipWaiting())));
 self.addEventListener('activate',event=>event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(key=>key!==CACHE).map(key=>caches.delete(key)))).then(()=>self.clients.claim())));
+const networkFirst=async request=>{
+ try{
+  const response=await fetch(request);
+  if(response.ok)try{const cache=await caches.open(CACHE);await cache.put(request,response.clone());}catch{}
+  return response;
+ }catch{
+  return await caches.match(request)||new Response('Offline',{status:503,statusText:'Service Unavailable'});
+ }
+};
 self.addEventListener('fetch',event=>{
  const request=event.request,url=new URL(request.url);
  if(request.method!=='GET'||url.origin!==self.location.origin||url.pathname.startsWith('/api/'))return;
- if(SHELL.includes(url.pathname))event.respondWith(caches.match(request).then(cached=>cached||fetch(request)));
+ if(!SHELL.includes(url.pathname))return;
+ event.respondWith(networkFirst(request));
 });
 self.addEventListener('push',event=>{
  let payload={};try{payload=event.data?.json()||{};}catch{}
