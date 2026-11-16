@@ -85,6 +85,7 @@
 <button type="button" data-section="messages"><span>Messages & Follow-ups</span></button>
 <button type="button" data-section="availability"><span>Availability</span></button>
 <button type="button" data-section="settings"><span>Settings</span></button>
+<button type="button" data-section="pricing"><span>Pricing</span></button>
 <button type="button" data-section="parts"><span>Parts & Suppliers</span></button>
 </nav>
 <div class="crm-sidebar-foot">Josh Mobile Inc.<small>North Broward · Eastern Time</small></div>
@@ -402,6 +403,7 @@
 <section class="detail-block">
 <h3>Manual supplier quote</h3><p class="subtle">Enter only a price and availability Josh actually researched. This does not fetch, order, or claim compatibility.</p>
 <form id="supplier-quote-form"><div class="form-grid">
+<label class="wide">Catalog item <small>(optional; fills blank quote prices only)</small><input id="quote-catalog-item" list="catalog-item-options" maxlength="100" placeholder="Choose a service or common part"></label>
 <label>Supplier<input id="quote-supplier" maxlength="120"></label>
 <label>Supplier SKU <small>(optional)</small><input id="quote-sku" maxlength="120"></label>
 <label>Part number <small>(optional)</small><input id="quote-part-number" maxlength="100"></label>
@@ -461,17 +463,8 @@
 <details class="account-settings" id="pricing-settings">
 <summary>Service catalog &amp; parts estimate defaults</summary>
 <div class="owner-card">
-<p class="subtle">Default prices help start a new job; saved jobs keep their own price snapshot. These settings do not create invoices, taxes, charges, supplier orders, or customer messages.</p>
-<form id="parts-pricing-settings-form" class="form-grid">
-<label>Parts markup (%) <small>(optional)</small><input id="parts-markup-percent" type="number" inputmode="decimal" min="0" max="500" step="0.01" placeholder="e.g. 25"></label>
-<label>Default labor for parts estimate ($) <small>(optional)</small><input id="parts-default-labor" type="number" inputmode="decimal" min="0" max="1000000" step="0.01"></label>
-<div class="wide"><button class="outline" type="submit">Save parts estimate defaults</button><p id="parts-settings-message" class="message" role="status"></p></div>
-</form>
-<form id="service-catalog-form">
-<div id="service-catalog-list" class="service-catalog-list"></div>
-<div class="inline-actions"><button id="add-service-catalog-item" class="outline" type="button">＋ Service</button><button class="primary" type="submit">Save service catalog</button></div>
-<p id="service-catalog-message" class="message" role="status"></p>
-</form>
+<p class="subtle">Find service and common-part cost, customer price, margin, and estimate defaults on the dedicated Pricing page. Saved jobs and supplier quotes keep their own price snapshot.</p>
+<button class="outline" type="button" data-go-section="pricing">Open Pricing</button>
 </div>
 </details>
 <details class="account-settings">
@@ -488,6 +481,26 @@
 </p>
 </form>
 </details>
+</section>
+<section id="pricing-view" class="module-pane settings-view" hidden aria-label="Pricing">
+<div class="records-heading"><div><button class="overview-return" type="button" data-go-section="overview">← Overview</button><h2>Pricing</h2><p class="subtle">Private service and common-part defaults. Catalog edits never rewrite a saved job or supplier quote.</p></div></div>
+<div class="owner-card pricing-page-card">
+<h3>Parts estimate helper</h3>
+<p class="subtle">The markup is a reference for setting a customer price. A per-item customer price always stands on its own; nothing here creates an invoice, tax, charge, order, or customer message.</p>
+<form id="parts-pricing-settings-form" class="form-grid">
+<label>Global parts markup (%) <small>(optional helper)</small><input id="parts-markup-percent" type="number" inputmode="decimal" min="0" max="500" step="0.01" placeholder="e.g. 25"></label>
+<label>Default labor for parts estimate ($) <small>(optional)</small><input id="parts-default-labor" type="number" inputmode="decimal" min="0" max="1000000" step="0.01"></label>
+<div class="wide"><button class="outline" type="submit">Save parts estimate defaults</button><p id="parts-settings-message" class="message" role="status"></p></div>
+</form>
+</div>
+<div class="owner-card pricing-page-card">
+<div class="section-actions"><div><h3>Service &amp; common-part catalog</h3><p class="subtle">Set Josh’s cost, the customer price, and an optional default labor amount. Uncheck Active to archive an item; it remains saved and is excluded from new choices.</p></div><div class="inline-actions"><button id="add-service-catalog-item" class="outline" type="button">＋ Service</button><button id="add-common-catalog-item" class="outline" type="button">＋ Common part</button></div></div>
+<form id="service-catalog-form">
+<div id="service-catalog-list" class="service-catalog-list"></div>
+<div class="inline-actions"><button class="primary" type="submit">Save pricing catalog</button></div>
+<p id="service-catalog-message" class="message" role="status"></p>
+</form>
+</div>
 </section>
 </div>
 </div>
@@ -615,6 +628,7 @@
 <button class="primary" type="submit">Save parts task</button><p id="parts-request-create-message" class="message" role="status"></p></form>
 </dialog>
 <datalist id="service-catalog-options"></datalist>
+<datalist id="catalog-item-options"></datalist>
 <footer>
 <span>Josh Mobile Inc. · Private operations</span>
 <a href="/">Public website ↗</a>

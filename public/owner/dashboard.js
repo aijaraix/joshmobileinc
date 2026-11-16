@@ -1,5 +1,6 @@
 import {contactKey,groupContacts,isUpcomingAppointment} from './crm-model.mjs';
 import {isOwnerEmail,trashUiVisibility} from './owner-access.mjs';
+import {catalogItemByName,catalogMargin,catalogPricingPrefill} from './catalog-pricing.mjs';
 'use strict';
 const $=id=>document.getElementById(id),msg=(id,value)=>{if($(id))$(id).textContent=value;};
 const api=async(action,method='GET',body)=>{const r=await fetch('/api/admin?action='+encodeURIComponent(action),{method,credentials:'same-origin',headers:method==='POST'?{'Content-Type':'application/json'}:{},body:body?JSON.stringify(body):undefined,cache:'no-store'});const d=await r.json().catch(()=>({error:'Could not read the response.'}));if(!r.ok){if(r.status===401&&!['login','activate'].includes(action))showLogin();throw new Error(d.error||'Request failed.');}return d;};
@@ -50,7 +51,7 @@ async function load({automatic=false}={}){try{const currentId=selected?.id,keepD
 async function loadCrm(){
  try{
   const data=await api('crm');customers=data.customers||[];vehicles=data.vehicles||[];partsRequests=data.partsRequests||[];serviceCatalog=data.serviceCatalog||[];partsSettings=data.partsSettings||{};
-  renderCatalogOptions();renderManualCustomerOptions();renderServiceCatalog();renderPartsList();render();
+  renderCatalogOptions();renderCatalogItemOptions();renderManualCustomerOptions();renderServiceCatalog();renderPartsList();render();
   if(selected&&!dirty())renderCustomerProfile(selected);
  }catch(error){live('Customer records could not refresh.');}
 }
@@ -64,6 +65,7 @@ const sectionConfig={
  messages:{title:'Messages & Follow-ups',pane:'records-view',filter:'messages',description:'Manual contact history and follow-up notes. No messages send automatically.'},
  availability:{title:'Availability',pane:'availability-view',filter:'availability'},
  settings:{title:'Settings',pane:'settings-view',filter:'settings'},
+ pricing:{title:'Pricing',pane:'pricing-view',filter:'pricing'},
  parts:{title:'Parts & Suppliers',pane:'parts-view',filter:'parts'}
 };
 function closeCrmNav(){if(!$('crm-sidebar'))return;$('crm-sidebar').classList.remove('open');$('crm-scrim').hidden=true;$('crm-menu-toggle').setAttribute('aria-expanded','false');}
@@ -94,7 +96,7 @@ function setSection(next,historyMode='push'){
  }
  selected=null;$('job-detail').hidden=true;$('empty-detail').hidden=false;$('back-to-list').hidden=true;$('workspace-grid').classList.remove('has-selection');
  document.querySelectorAll('#crm-nav [data-section]').forEach(button=>{const active=button.dataset.section===next;button.classList.toggle('active',active);if(active)button.setAttribute('aria-current','page');else button.removeAttribute('aria-current');});
- closeCrmNav();if(next==='availability')loadAvailability();if(next==='settings'&&ownerEmail==='joshmobileinc@gmail.com')refreshPushStatus();if(next==='parts')renderPartsList();
+ closeCrmNav();if(next==='availability')loadAvailability();if(next==='settings'&&ownerEmail==='joshmobileinc@gmail.com')refreshPushStatus();if(next==='pricing')renderServiceCatalog();if(next==='parts')renderPartsList();
  render();if(historyMode!=='none')syncNav(historyMode);
  if(historyMode==='push')window.scrollTo({top:0,behavior:'instant'});
  return true;
@@ -153,7 +155,11 @@ function render(){
 }
 function renderCatalogOptions(){
  const list=$('service-catalog-options');if(!list)return;list.replaceChildren();
- for(const item of serviceCatalog.filter(item=>item.active!==false)){const option=document.createElement('option');option.value=item.name;list.append(option);}
+ for(const item of serviceCatalog.filter(item=>item.active!==false&&(item.kind||'service')==='service')){const option=document.createElement('option');option.value=item.name;list.append(option);}
+}
+function renderCatalogItemOptions(){
+ const list=$('catalog-item-options');if(!list)return;list.replaceChildren();
+ for(const item of serviceCatalog.filter(item=>item.active!==false)){const option=document.createElement('option');option.value=item.name;option.label=(item.kind||'service')==='part'?'Common part':'Service';list.append(option);}
 }
 function renderManualCustomerOptions(){
  const select=$('manual-customer-id');if(!select)return;const prior=select.value;select.replaceChildren(new Option('Create or match by exact contact details',''));
@@ -165,9 +171,28 @@ function renderManualVehicleOptions(){
  for(const vehicle of vehicles.filter(vehicle=>vehicle.customerId===customerId))select.add(new Option([vehicle.year,vehicle.make,vehicle.model,vehicle.trim,vehicle.vin?`VIN ${vehicle.vin}`:''].filter(Boolean).join(' · '),vehicle.id));
  select.value=vehicles.some(vehicle=>vehicle.id===prior&&vehicle.customerId===customerId)?prior:'';
 }
+const catalogInputCents=value=>{const input=String(value??'').trim();return /^\d{1,7}(?:\.\d{1,2})?$/.test(input)?Math.round(Number(input)*100):null;};
+function renderCatalogRowMath(row){
+ const costCents=catalogInputCents(row.querySelector('[data-field="cost"]').value),defaultPartsCents=catalogInputCents(row.querySelector('[data-field="defaultParts"]').value),margin=catalogMargin({costCents,defaultPartsCents}),marginHost=row.querySelector('[data-catalog-margin]'),helper=row.querySelector('[data-markup-helper]');
+ marginHost.textContent=Number.isSafeInteger(margin.dollarsCents)?`${currencyDisplay(margin.dollarsCents)} · ${margin.percent===null?'—':margin.percent.toFixed(1)+'%'}`:'Add cost and customer price';
+ const markupRaw=$('parts-markup-percent').value.trim(),markup=markupRaw===''?null:Number(markupRaw);
+ helper.textContent=Number.isSafeInteger(costCents)&&Number.isFinite(markup)?`Markup helper: ${currencyDisplay(Math.round(costCents*(1+markup/100)))} at ${markup}%`:'Markup helper: add a cost and global markup';
+ row.classList.toggle('catalog-archived',!row.querySelector('[data-field="active"]').checked);
+}
 function renderServiceCatalog(){
- const host=$('service-catalog-list');if(!host)return;host.innerHTML=serviceCatalog.map(item=>'<div class="service-catalog-row" data-catalog-id="'+esc(item.id)+'"><label>Service<input data-field="name" value="'+esc(item.name)+'" maxlength="100" required></label><label>Default parts ($)<input data-field="defaultParts" type="number" inputmode="decimal" min="0" max="1000000" step="0.01" value="'+esc(currencyInput(item.defaultPartsCents))+'"></label><label>Default labor ($)<input data-field="defaultLabor" type="number" inputmode="decimal" min="0" max="1000000" step="0.01" value="'+esc(currencyInput(item.defaultLaborCents))+'"></label><label class="catalog-active"><input data-field="active" type="checkbox" '+(item.active!==false?'checked':'')+'> Active</label></div>').join('');
- $('parts-markup-percent').value=partsSettings.markupPercent??'';$('parts-default-labor').value=currencyInput(partsSettings.defaultLaborCents);
+ const host=$('service-catalog-list');if(!host)return;$('parts-markup-percent').value=partsSettings.markupPercent??'';$('parts-default-labor').value=currencyInput(partsSettings.defaultLaborCents);host.innerHTML=serviceCatalog.map(item=>'<div class="service-catalog-row" data-catalog-id="'+esc(item.id)+'"><label>Type<select data-field="kind"><option value="service" '+((item.kind||'service')==='service'?'selected':'')+'>Service</option><option value="part" '+(item.kind==='part'?'selected':'')+'>Common part</option></select></label><label>Item name<input data-field="name" value="'+esc(item.name)+'" maxlength="100" required></label><label>His cost ($)<input data-field="cost" type="number" inputmode="decimal" min="0" max="1000000" step="0.01" value="'+esc(currencyInput(item.costCents))+'"></label><label>Customer price ($)<input data-field="defaultParts" type="number" inputmode="decimal" min="0" max="1000000" step="0.01" value="'+esc(currencyInput(item.defaultPartsCents))+'"></label><label>Default labor ($)<input data-field="defaultLabor" type="number" inputmode="decimal" min="0" max="1000000" step="0.01" value="'+esc(currencyInput(item.defaultLaborCents))+'"></label><div class="catalog-margin" role="status"><span>Margin</span><strong data-catalog-margin></strong><small data-markup-helper></small></div><label class="catalog-active"><input data-field="active" type="checkbox" '+(item.active!==false?'checked':'')+'> Active <small>(uncheck to archive)</small></label></div>').join('');
+ for(const row of host.querySelectorAll('[data-catalog-id]')){for(const input of row.querySelectorAll('[data-field="cost"],[data-field="defaultParts"],[data-field="active"]'))input.addEventListener('input',()=>renderCatalogRowMath(row));renderCatalogRowMath(row);}
+}
+function prefillJobPricingFromCatalog(service,fields){
+ const item=catalogItemByName(serviceCatalog,service,'service');if(!item)return;
+ const current=Object.fromEntries(Object.entries(fields).map(([key,input])=>[key,input?.value??''])),next=catalogPricingPrefill(item,current);
+ for(const [key,input] of Object.entries(fields))if(input&&String(input.value).trim()===''&&String(next[key]??'').trim()!=='')input.value=next[key];
+ updateQuoteTotal();
+}
+function prefillSupplierQuoteFromCatalog(){
+ const item=catalogItemByName(serviceCatalog,$('quote-catalog-item').value);if(!item)return;
+ if($('quote-supplier-price').value.trim()===''&&Number.isSafeInteger(item.costCents))$('quote-supplier-price').value=currencyInput(item.costCents);
+ if($('quote-retail-price').value.trim()===''&&Number.isSafeInteger(item.defaultPartsCents))$('quote-retail-price').value=currencyInput(item.defaultPartsCents);
 }
 function renderJobVehicleOptions(job){
  const select=$('edit-vehicle-id');if(!select)return;select.replaceChildren(new Option("Use this job's vehicle details",''));
@@ -358,6 +383,7 @@ $('job-form').onsubmit=async event=>{
  finally{$('save-job').disabled=false;}
 };
 for(const id of ['quoted-parts','quoted-labor','parts-charge','labor-charge','additional-fees','discount','tax','final-charged','amount-paid'])$(id).addEventListener('input',updateQuoteTotal);
+$('edit-service').addEventListener('change',()=>prefillJobPricingFromCatalog($('edit-service').value,{quotedParts:$('quoted-parts'),quotedLabor:$('quoted-labor'),supplierPartsCost:$('supplier-parts-cost')}));
 $('copy-fitment').onclick=async()=>{
  if(!selected)return;
  const value=[selected.year,selected.make,selected.model,selected.trim,selected.engine,'VIN: '+(selected.vin||'not recorded'),'Service: '+(services[selected.service]||selected.service||'not specified')].filter(Boolean).join(' · ');
@@ -412,17 +438,21 @@ $('parts-request-create-form').onsubmit=async event=>{
 $('parts-form').onsubmit=async event=>{
  event.preventDefault();if(!selectedParts)return;try{const result=await api('update-parts-request','POST',{id:selectedParts.id,version:selectedParts.version,requestedPart:$('parts-requested-part').value,partCategory:$('parts-category').value,oemPartNumber:$('parts-oem').value,aftermarketPartNumber:$('parts-aftermarket').value,quantity:$('parts-quantity').value,compatibilityStatus:$('parts-compatibility').value,status:$('parts-request-status').value,labor:$('parts-labor').value,notes:$('parts-notes').value});await loadCrm();chooseParts(result.partsRequest.id);msg('parts-save-message','Parts task saved.');}catch(error){msg('parts-save-message',error.message);}
 };
+$('quote-catalog-item').addEventListener('change',prefillSupplierQuoteFromCatalog);
 $('supplier-quote-form').onsubmit=async event=>{
  event.preventDefault();if(!selectedParts)return;try{const result=await api('add-supplier-quote','POST',{id:selectedParts.id,version:selectedParts.version,supplier:$('quote-supplier').value,supplierSku:$('quote-sku').value,partNumber:$('quote-part-number').value,supplierPrice:$('quote-supplier-price').value,retailPrice:$('quote-retail-price').value,availability:$('quote-availability').value,sourceUrl:$('quote-source-url').value,notes:$('quote-notes').value});event.target.reset();await loadCrm();chooseParts(result.partsRequest.id);msg('quote-save-message','Researched supplier quote saved.');}catch(error){msg('quote-save-message',error.message);}
 };
 $('approve-parts-estimate').onclick=async()=>{if(!selectedParts)return;try{const result=await api('approve-parts-estimate','POST',{id:selectedParts.id,version:selectedParts.version});await loadCrm();chooseParts(result.partsRequest.id);}catch(error){msg('parts-save-message',error.message);}};
 $('parts-pricing-settings-form').onsubmit=async event=>{event.preventDefault();try{const result=await api('parts-settings','POST',{markupPercent:$('parts-markup-percent').value,defaultLabor:$('parts-default-labor').value});partsSettings=result.partsSettings;renderServiceCatalog();msg('parts-settings-message','Parts estimate defaults saved.');}catch(error){msg('parts-settings-message',error.message);}};
-$('add-service-catalog-item').onclick=()=>{serviceCatalog.push({id:'service-'+Date.now(),name:'New service',active:true,defaultPartsCents:null,defaultLaborCents:null});renderServiceCatalog();};
-$('service-catalog-form').onsubmit=async event=>{event.preventDefault();const items=[...$('service-catalog-list').querySelectorAll('[data-catalog-id]')].map(row=>({id:row.dataset.catalogId,name:row.querySelector('[data-field="name"]').value,defaultParts:row.querySelector('[data-field="defaultParts"]').value,defaultLabor:row.querySelector('[data-field="defaultLabor"]').value,active:row.querySelector('[data-field="active"]').checked}));try{const result=await api('catalog-save','POST',{items});serviceCatalog=result.serviceCatalog;renderCatalogOptions();renderServiceCatalog();msg('service-catalog-message','Service catalog saved. Existing jobs kept their original prices.');}catch(error){msg('service-catalog-message',error.message);}};
+$('parts-markup-percent').addEventListener('input',()=>document.querySelectorAll('[data-catalog-id]').forEach(renderCatalogRowMath));
+$('add-service-catalog-item').onclick=()=>{serviceCatalog.push({id:'service-'+Date.now(),kind:'service',name:'New service',active:true,costCents:null,defaultPartsCents:null,defaultLaborCents:null});renderServiceCatalog();};
+$('add-common-catalog-item').onclick=()=>{serviceCatalog.push({id:'part-'+Date.now(),kind:'part',name:'New common part',active:true,costCents:null,defaultPartsCents:null,defaultLaborCents:null});renderServiceCatalog();};
+$('service-catalog-form').onsubmit=async event=>{event.preventDefault();const items=[...$('service-catalog-list').querySelectorAll('[data-catalog-id]')].map(row=>({id:row.dataset.catalogId,kind:row.querySelector('[data-field="kind"]').value,name:row.querySelector('[data-field="name"]').value,cost:row.querySelector('[data-field="cost"]').value,defaultParts:row.querySelector('[data-field="defaultParts"]').value,defaultLabor:row.querySelector('[data-field="defaultLabor"]').value,active:row.querySelector('[data-field="active"]').checked}));try{const result=await api('catalog-save','POST',{items});serviceCatalog=result.serviceCatalog;renderCatalogOptions();renderCatalogItemOptions();renderServiceCatalog();msg('service-catalog-message','Pricing catalog saved. Existing jobs and supplier quotes kept their original prices.');}catch(error){msg('service-catalog-message',error.message);}};
 $('communication-form').onsubmit=async e=>{e.preventDefault();if(!selected)return;try{const r=await api('message','POST',{id:selected.id,version:selected.version,channel:$('communication-type').value,text:$('communication-text').value});jobs=jobs.map(j=>j.id===r.job.id?r.job:j);choose(r.job.id);$('communication-text').value='';msg('communication-message','Conversation note saved.');}catch(err){msg('communication-message',err.message);}};
 $('new-job-btn').onclick=()=>{if(dirty()){msg('save-message','Save the current dossier edits before adding another job.');return;}renderManualCustomerOptions();$('add-message').textContent='';$('add-dialog').showModal();};
 $('new-customer-btn').onclick=()=>openCustomerDialog();
 $('close-dialog').onclick=()=>$('add-dialog').close();
+$('add-job-form').elements.service.addEventListener('change',()=>{const form=$('add-job-form');prefillJobPricingFromCatalog(form.elements.service.value,{quotedParts:form.elements.quotedParts,quotedLabor:form.elements.quotedLabor,supplierPartsCost:form.elements.supplierPartsCost});});
 $('add-job-form').onsubmit=async event=>{
  event.preventDefault();
  const button=event.submitter;if(button)button.disabled=true;
